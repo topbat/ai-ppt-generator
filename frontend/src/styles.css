@@ -1,0 +1,29 @@
+/* 全局样式 */
+body {
+  margin: 0;
+  min-width: 1280px;
+  font-family: -apple-system, BlinkMacSystemFont, 'PingFang SC', 'Microsoft YaHei',
+    'Noto Sans CJK SC', 'Segoe UI', Roboto, sans-serif;
+  background: #f5f5f5;
+}
+
+/* 卡片悬浮效果 */
+.hover-card {
+  transition: box-shadow 0.2s;
+}
+.hover-card:hover {
+  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.12);
+}
+
+/* 16:9 缩略图容器 */
+.thumb-16-9 {
+  position: relative;
+  width: 100%;
+  padding-top: 56.25%;
+  overflow: hidden;
+  background: #f0f2f5;
+}
+.thumb-16-9 > * {
+  position: absolute;
+  inset: 0;
+}

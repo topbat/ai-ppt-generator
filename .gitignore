@@ -1,0 +1,33 @@
+# Python
+__pycache__/
+*.pyc
+backend/.venv/
+backend/tests/smoke_output.pptx
+
+# Node
+frontend/node_modules/
+frontend/dist/
+frontend/*.tsbuildinfo
+
+# 环境与本地文件
+deploy/.env
+backend/.env
+*.log
+.DS_Store
+
+# 本地临时产物（模板合集/生成结果 ~700MB，不入库；仅保留设计纪要）
+tmp/*
+!tmp/AI 辅助美化.md
+
+# 测试运行产物（脚本执行时重新生成）
+backend/tests/smoke_beautified.pptx
+backend/tests/visual_bad.pptx
+backend/tests/visual_fixed.pptx
+backend/tests/visual_good.pptx
+backend/tests/e2e_job_id.txt
+backend/tests/e2e_tpl_id.txt
+
+# IDE
+.vscode/
+.idea/
+.claude/

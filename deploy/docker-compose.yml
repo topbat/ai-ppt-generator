@@ -1,0 +1,124 @@
+# AI PPT 自动生成系统 —— 一键部署
+# 启动：cp .env.example .env && 填入 LLM API Key && docker compose up -d --build
+# 扩容：docker compose up -d --scale worker=4
+name: ppt-generator
+
+services:
+  frontend:
+    build: ../frontend
+    ports:
+      - "8081:80"   # 8080 已被本机其他服务占用
+    depends_on:
+      api:
+        condition: service_healthy
+    restart: unless-stopped
+
+  api:
+    build:
+      context: ../backend
+      target: api
+    ports:
+      - "8000:8000"          # 便于本地直连调试，可按需移除
+    env_file: .env
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+      minio:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8000/healthz"]
+      interval: 10s
+      timeout: 5s
+      retries: 6
+      start_period: 20s
+    deploy:
+      resources:
+        limits:
+          memory: 1G
+    restart: unless-stopped
+
+  worker:
+    build:
+      context: ../backend
+      target: worker
+    env_file: .env
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+      minio:
+        condition: service_healthy
+    deploy:
+      resources:
+        limits:
+          memory: 2G
+    restart: unless-stopped
+
+  postgres:
+    image: pgvector/pgvector:pg16
+    environment:
+      POSTGRES_USER: ppt
+      POSTGRES_PASSWORD: ppt
+      POSTGRES_DB: ppt
+    ports:
+      - "127.0.0.1:15432:5432"  # 本地调试用；15432 避开本机 PostgreSQL(5432) 与 Windows 保留端口段(5433-5532)
+    volumes:
+      - pgdata:/var/lib/postgresql/data
+      - ./init/db:/docker-entrypoint-initdb.d:ro
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ppt"]
+      interval: 5s
+      timeout: 3s
+      retries: 10
+    restart: unless-stopped
+
+  redis:
+    image: redis:7-alpine
+    command: redis-server --appendonly yes
+    ports:
+      - "127.0.0.1:6379:6379"   # 本地调试用（仅绑定回环地址）
+    volumes:
+      - redisdata:/data
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 5s
+      timeout: 3s
+      retries: 10
+    restart: unless-stopped
+
+  minio:
+    image: minio/minio:latest
+    command: server /data --console-address ":9001"
+    environment:
+      MINIO_ROOT_USER: pptadmin
+      MINIO_ROOT_PASSWORD: pptadmin123
+    ports:
+      - "9000:9000"          # 预签名 URL 需要浏览器可达（S3_PUBLIC_ENDPOINT）
+      - "9001:9001"          # 管理控制台
+    volumes:
+      - miniodata:/data
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:9000/minio/health/live"]
+      interval: 10s
+      timeout: 5s
+      retries: 6
+    restart: unless-stopped
+
+  minio-init:
+    image: minio/mc:latest
+    depends_on:
+      minio:
+        condition: service_healthy
+    entrypoint: >
+      /bin/sh -c "
+      mc alias set local http://minio:9000 pptadmin pptadmin123 &&
+      (mc mb -p local/ppt-gen || true) &&
+      echo '存储桶 ppt-gen 初始化完成'"
+
+volumes:
+  pgdata:
+  redisdata:
+  miniodata:
