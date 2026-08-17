@@ -125,6 +125,14 @@ def _render_with_template(rc, spec, tpl_path: str, roles: dict, out_path: str) -
 
         几何合法性兜底：模板标题占位符位置异常（过低/过窄）会把正文区算得
         极小导致整页截断，此时退回默认安全区域。"""
+        contract = (role_info or {}).get("space_contract") or {}
+        safe = contract.get("safe_zone")
+        if safe:
+            try:
+                return (float(safe["x"]), float(safe["y"]),
+                        float(safe["width"]), float(safe["height"]))
+            except (KeyError, TypeError, ValueError):
+                logger.warning("模板空间契约无效，退回标题几何计算")
         geo = (role_info or {}).get("title_geo")
         if geo and geo.get("width"):
             x = max(0.55, geo["left"] / _EMU_IN)

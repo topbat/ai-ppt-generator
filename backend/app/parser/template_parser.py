@@ -21,7 +21,7 @@ from app.core.logging import get_logger
 
 logger = get_logger(__name__)
 
-PARSER_VERSION = 5  # 分类规则变更时 +1，旧解析结果自动失效重解析（v5: 版式层尾页识别）
+PARSER_VERSION = 6  # v6: 企业模板空间契约（安全区、logo、页脚保护区）
 
 _TOC_WORDS = ("目录", "目 录", "contents", "content", "agenda", "provide")
 _ENDING_WORDS = ("感谢", "谢谢", "thank", "thanks", "the end", "再见")
@@ -267,6 +267,115 @@ def _title_geometry(slide) -> dict | None:
             "width": int(shp.width or 0), "height": int(shp.height or 0)}
 
 
+def _inches(value) -> float:
+    return float(value or 0) / 914400.0
+
+
+def _shape_box(shape) -> dict:
+    return {
+        "x": _inches(shape.left),
+        "y": _inches(shape.top),
+        "width": _inches(shape.width),
+        "height": _inches(shape.height),
+    }
+
+
+def _intersection_ratio(a: dict, b: dict) -> float:
+    left = max(a["x"], b["x"])
+    top = max(a["y"], b["y"])
+    right = min(a["x"] + a["width"], b["x"] + b["width"])
+    bottom = min(a["y"] + a["height"], b["y"] + b["height"])
+    area = max(0.0, right - left) * max(0.0, bottom - top)
+    base = min(a["width"] * a["height"], b["width"] * b["height"])
+    return area / base if base > 0 else 0.0
+
+
+def _avoid_protected_zone(safe: dict, protected: dict) -> dict:
+    """保护区明显侵入正文区时，从最近一侧收紧正文区。"""
+    if _intersection_ratio(safe, protected) <= 0.10:
+        return safe
+    result = dict(safe)
+    safe_right = safe["x"] + safe["width"]
+    safe_bottom = safe["y"] + safe["height"]
+    protected_right = protected["x"] + protected["width"]
+    protected_bottom = protected["y"] + protected["height"]
+    distances = {
+        "left": abs(protected_right - safe["x"]),
+        "right": abs(safe_right - protected["x"]),
+        "top": abs(protected_bottom - safe["y"]),
+        "bottom": abs(safe_bottom - protected["y"]),
+    }
+    edge = min(distances, key=distances.get)
+    clearance = 0.18
+    if edge == "left":
+        new_x = min(safe_right - 0.5, protected_right + clearance)
+        result["width"] = safe_right - new_x
+        result["x"] = new_x
+    elif edge == "right":
+        result["width"] = max(0.5, protected["x"] - clearance - safe["x"])
+    elif edge == "top":
+        new_y = min(safe_bottom - 0.5, protected_bottom + clearance)
+        result["height"] = safe_bottom - new_y
+        result["y"] = new_y
+    else:
+        result["height"] = max(0.5, protected["y"] - clearance - safe["y"])
+    return result
+
+
+def _space_contract(slide, prs, title_geo: dict | None) -> dict:
+    """提取以英寸为单位的模板正文安全区与品牌保护区。"""
+    page_width = _inches(prs.slide_width)
+    page_height = _inches(prs.slide_height)
+    title_bottom = 0.7
+    if title_geo:
+        title_top = _inches(title_geo.get("top"))
+        title_height = _inches(title_geo.get("height"))
+        candidate_bottom = title_top + title_height
+        if (title_top <= page_height * 0.35
+                and title_height <= page_height * 0.30
+                and candidate_bottom <= page_height * 0.45):
+            title_bottom = candidate_bottom + 0.28
+
+    safe = {
+        "x": 0.7,
+        "y": max(0.7, title_bottom),
+        "width": max(0.5, page_width - 1.4),
+        "height": 0.5,
+        "padding": {"top": 0.18, "right": 0.22, "bottom": 0.18, "left": 0.22},
+    }
+    safe["height"] = max(0.5, page_height - 0.55 - safe["y"])
+
+    protected_zones = []
+    page_area = max(0.01, page_width * page_height)
+    for shape in slide.shapes:
+        try:
+            box = _shape_box(shape)
+            shape_area = box["width"] * box["height"]
+            if shape.shape_type == 13 and box["y"] < page_height * 0.22 and shape_area < page_area * 0.08:
+                protected_zones.append({"role": "logo", "box": box})
+            elif box["y"] >= page_height - 0.55 and (
+                getattr(shape, "has_text_frame", False) or shape_area < page_area * 0.08
+            ):
+                protected_zones.append({"role": "footer", "box": box})
+        except Exception:
+            continue
+
+    for zone in protected_zones:
+        safe = _avoid_protected_zone(safe, zone["box"])
+
+    contract = {
+        "page_width": page_width,
+        "page_height": page_height,
+        "safe_zone": safe,
+        "protected_zones": protected_zones,
+        "grid_columns": 12,
+        "gutter": 0.24,
+    }
+    from app.schemas.composition import TemplateSpaceContract
+
+    return TemplateSpaceContract.model_validate(contract).model_dump()
+
+
 def _classify_slide(slide, idx: int, total: int, prs) -> tuple[str, float, dict]:
     shapes = list(slide.shapes)
     texts = _slide_texts(slide)
@@ -276,9 +385,10 @@ def _classify_slide(slide, idx: int, total: int, prs) -> tuple[str, float, dict]
     has_table = any(getattr(s, "has_table", False) for s in shapes)
     # 有效正文字符数（排除页码类）
     body_chars = sum(len(t) for t in texts if not re.fullmatch(r"[\d\s/]*", t))
+    title_geo = _title_geometry(slide)
     meta = {"shape_count": len(shapes), "text_count": len(texts),
             "picture_count": len(pictures), "has_chart": has_chart, "has_table": has_table,
-            "title_geo": _title_geometry(slide)}
+            "title_geo": title_geo, "space_contract": _space_contract(slide, prs, title_geo)}
 
     # 强文本信号优先（尾页判定包含版式层文字：谢谢艺术字常放在版式里）
     layout_text = ""

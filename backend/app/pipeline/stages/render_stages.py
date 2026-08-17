@@ -45,6 +45,7 @@ def _template_render_info(ctx: JobContext, tmp_dir: str) -> dict | None:
         {"slide_index": r.slide_index, "role": r.slide_type,
          "confidence": float(r.confidence),
          "title_geo": (r.layout_meta or {}).get("title_geo"),
+         "space_contract": (r.layout_meta or {}).get("space_contract"),
          "bg_is_dark": (r.layout_meta or {}).get("bg_is_dark", False)} for r in rows]}
 
 
