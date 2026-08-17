@@ -32,5 +32,8 @@ backend/tests/e2e_tpl_id.txt
 .idea/
 .claude/
 
+# Local isolated Git worktrees
+.worktrees/
+
 # ppt-master 工具仓库（独立 git 仓库，与 backend 同级；按 README 稀疏克隆，不入本仓库）
 ppt-master/
