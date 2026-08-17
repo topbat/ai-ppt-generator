@@ -1,9 +1,11 @@
 # AI PPT 自动生成系统 — 整体实现方案
 
-> 版本：V1.0
-> 日期：2026-08-13
-> 内容：总体架构 / 模块设计 / 三模式流水线 / 流程设计 / 状态设计 / 表设计 / API / 存储与预览 / 容器化部署 / 并行与性能 / 可观测性
+> 版本：V1.1
+> 日期：2026-08-17（按当前代码同步）
+> 内容：总体架构 / 模块设计 / 三模式流水线 / 流程设计 / 状态设计 / 当前 ORM 表 / API / 存储与预览 / 容器化部署 / 已知边界
 > 关联文档：[01-PRD.md](01-PRD.md)、[02-UI-DESIGN.md](02-UI-DESIGN.md)
+
+> 本文同时保留部分 V1 设计目标。标注“规划/后续”的内容尚未在当前代码中实现；当前运行入口和服务清单以仓库根目录 `README.md`、`deploy/docker-compose.yml` 以及 `backend/app` 为准。
 
 ---
 
@@ -42,18 +44,18 @@
           └──────────────┼────────────┘
              ┌───────────┼───────────────┐
              ▼           ▼               ▼
-      ┌───────────┐ ┌──────────────┐ ┌─────────────┐
-      │  MinIO/OSS │ │ soffice 容器  │ │ Prometheus   │
-      │  文件/产物  │ │ PPTX→PDF→PNG │ │ + Grafana    │
-      └───────────┘ │ (unoserver)   │ │  (可选profile)│
-                    └──────────────┘ └─────────────┘
+      ┌───────────┐ ┌────────────────────┐ ┌─────────────────┐
+      │  MinIO/OSS │ │ Worker 内置          │ │ Prometheus/     │
+      │  文件/产物  │ │ LibreOffice         │ │ Grafana         │
+      └───────────┘ │ PPTX→PDF→PNG       │ │ （后续能力）    │
+                    └────────────────────┘ └─────────────────┘
 ```
 
 要点：
 
 - **API 与 Worker 分离**：API 只做轻量请求（<500ms），所有生成工作在 Worker 内异步执行；
 - **LLM Gateway 是进程内模块**（非独立服务），统一封装 Qwen/DeepSeek 的路由、重试、熔断、计量；V2 可拆独立服务；
-- **LibreOffice 独立容器**（unoserver 常驻，避免每次冷启动 soffice 进程），Worker 通过 HTTP/UNO 调用转换；
+- **LibreOffice 内置在 `worker`/`pptmaster-worker` 镜像**，默认由 Worker 启动独立 `soffice` 子进程转换；只有显式配置 `CONVERT_BACKEND=unoserver` 才会访问外部 unoserver，当前 Compose 未定义该服务；
 - 进度通过 Redis Pub/Sub 流转：Worker 发布 → API 订阅 → SSE 推送前端。
 
 ### 1.2 技术选型
@@ -66,16 +68,16 @@
 | PPT 渲染 | python-pptx | 唯一 PPTX 写入方 |
 | PDF 解析 | PyMuPDF (fitz) | 文本/表格/图片提取 |
 | DOCX 解析 | python-docx | 标题层级/表格/图片 |
-| OCR | RapidOCR（本地，PaddleOCR 模型）→ qwen-vl 兜底 | 内网优先本地 OCR |
+| OCR | 当前未实现；无有效文本时返回 E2003 | OCR 配置字段保留，后续接入 |
 | 图片处理 | Pillow | 裁剪/质量检查/文本测量 |
 | 图表 | python-pptx 原生 Chart；复杂图 matplotlib→PNG 兜底 | 保证可编辑优先 |
 | LLM | Qwen（DashScope OpenAI 兼容口）+ DeepSeek | openai sdk 统一接入 |
-| Embedding | DashScope text-embedding-v3；bge-m3 本地兜底 | 专业模式 RAG |
-| 数据库 | PostgreSQL 16 + pgvector | 元数据 + 向量 |
+| Embedding | 当前未生成/检索 embedding；`DocChunk` 为模型骨架 | 后续接入专业模式 RAG |
+| 数据库 | PostgreSQL 16（镜像含 pgvector） | 当前主要存元数据与 JSON，未接完整向量检索 |
 | 对象存储 | MinIO（S3 协议），可切阿里云 OSS | boto3/s3 抽象层 |
-| 文档转换 | LibreOffice 7 + unoserver | PPTX→PDF；pdf→png 用 PyMuPDF |
+| 文档转换 | Worker 镜像内 LibreOffice + 可选 unoserver | PPTX→PDF；PDF→PNG 用 PyMuPDF |
 | 部署 | Docker Compose（V1）→ K8s（V2） | 全容器化 |
-| 监控 | Prometheus + Grafana + 结构化日志(JSON) | compose profile 可选启用 |
+| 监控 | 结构化日志、任务/阶段/LLM 调用落库 | Prometheus/Grafana 尚未接入 Compose |
 
 ---
 
@@ -96,7 +98,7 @@ ppt-generator/
 │   │   │   ├── config.py            # Pydantic Settings，全部环境变量
 │   │   │   ├── logging.py           # 结构化日志(job_id/stage 贯穿)
 │   │   │   ├── errors.py            # 错误码枚举 + 异常体系
-│   │   │   └── metrics.py           # Prometheus 指标
+│   │   │   └── metrics.py           # 规划：Prometheus 指标（当前未实现）
 │   │   ├── models/                  # SQLAlchemy ORM（§8 表设计）
 │   │   ├── schemas/                 # Pydantic：API DTO + Presentation JSON
 │   │   ├── services/                # 业务服务（API 侧）
@@ -136,7 +138,7 @@ ppt-generator/
 │   └── requirements.txt
 ├── deploy/
 │   ├── docker-compose.yml
-│   ├── docker-compose.monitoring.yml
+│   ├── docker-compose.monitoring.yml # 规划文件，当前仓库未提供
 │   ├── .env.example
 │   └── init/                        # DB init、MinIO bucket 初始化、字体
 ├── templates/                       # 系统默认模板 + 系统标准版式库
@@ -152,7 +154,7 @@ ppt-generator/
 | 模块 | 职责 | 关键约束 |
 |---|---|---|
 | Upload Service | 文件接收、类型嗅探、落 MinIO、触发预解析 | 白名单校验；解析失败即报错，禁止带病进入生成 |
-| Document Parser | PDF/DOCX → 统一 Document IR（页/章节/段落/表格/图片） | 扫描件自动转 OCR；输出含原始页码 |
+| Document Parser | PDF/DOCX → 统一 Document IR（页/章节/段落/表格/图片） | 无有效文本时返回 E2003；扫描件 OCR 尚未接入 |
 | Template Parser | 模板 .pptx → 版式清单（type+confidence）+ Design Token | 只读模板；置信度低于阈值走近似匹配/系统版式 |
 | Knowledge Builder | Document IR → Knowledge Model（章节树/事实/数字/图表数据） | 关键数字全部进 Fact Registry |
 | Fact Registry | 事实登记/等级/冲突检测 | 冲突不得自动取舍（专业模式弹交互） |
@@ -163,10 +165,10 @@ ppt-generator/
 | Content Agent | 每页规划 → 页面内容 JSON（标题/要点/图表数据/来源） | 输出过 ContentGuard（长度/字段/事实校验） |
 | Layout Engine | 内容 → 元素几何布局；文本实测；溢出/重叠预判 | 只在版式定义的容器内摆放 |
 | PPT Renderer | Presentation JSON → PPTX（python-pptx） | 确定性、无 LLM；单页失败不中断整册 |
-| Convert Service | PPTX → PDF（unoserver）→ PNG（PyMuPDF） | 失败仅降级预览，不影响 PPTX 交付 |
+| Convert Service | PPTX → PDF（本机 soffice/可选 unoserver）→ PNG（PyMuPDF） | 失败仅降级预览，不影响 PPTX 交付 |
 | QA Service | 规则 QA（几何/密度/字数）+ Vision QA（专业模式） | 产出 Validation Report + 质量分 |
 | Repair Agent | 按 QA issue 定向修复（改文案/换版式/调布局） | 每轮全程留痕；最多 3 轮 |
-| Publisher | 产物上传、预签名、版本登记、清理临时文件 | 上传失败可独立重试 |
+| Publisher | 产物上传、对象键登记、版本登记、清理临时文件 | 当前下载 API 主要走后端代理；自动留存清理未实现 |
 | Progress Service | 阶段/页级进度发布（Redis Pub/Sub → SSE） | 事件幂等，带序号 |
 | LLM Gateway | 路由/超时/重试/熔断/JSON 修复/token 计量 | 见 §3.3 |
 
@@ -330,11 +332,11 @@ LLM 调用预算（10 页）：建模 1 + 大纲 1 + 规划 1 + 页内容 10 + �
 设计目标：可对外交付质量，10 页 1～3min，事实全链路管控。
 
 ```text
-VALIDATE ─┬─ PARSE_DOC(+OCR) ──┐
+VALIDATE ─┬─ PARSE_DOC（扫描件当前直接返回 E2003） ──┐
           └─ PARSE_TPL ────────┤
                                ▼
               KNOWLEDGE_DEEP            ← 深度建模 + Fact Registry(等级A~D)
-                               ▼          + Chunk/Embedding 入 pgvector
+                               ▼          + Chunk/Embedding（规划；当前仅模型骨架）
               FACT_CONFLICT_CHECK       ← 冲突 → 发布 decision_required 事件,
                                ▼          job → WAITING_USER (超时按默认策略)
               OUTLINE(+可选用户确认)     ← deepseek-reasoner; 可配置暂停供用户改大纲
@@ -343,8 +345,8 @@ VALIDATE ─┬─ PARSE_DOC(+OCR) ──┐
                                ▼
          ┌────┬────┬────┬────┐
          ▼    ▼    ▼    ▼    ▼
-       CONTENT(页级并行 + RAG逐页取证)   ← 每页先检索TopK相关chunk+事实,
-         └────┴────┴────┴────┘            带来源写作, sources 必填
+       CONTENT(页级并行 + RAG逐页取证)   ← 规划能力；当前实现按已解析 IR/事实生成，
+         └────┴────┴────┴────┘            尚未执行向量 TopK 检索
                                ▼
               FACT_GUARD                ← 页面数字逐一回查 Fact Registry,
                                ▼          等级C标注/等级D剔除
@@ -385,12 +387,12 @@ QA 阶段追加：标题重复、核心观点重复、数据重复检测；专�
 ### 5.1 任务全流程时序
 
 ```text
-用户            前端              API             Redis          Worker           soffice        MinIO
+用户            前端              API             Redis          Worker（内置 LibreOffice） MinIO
  │  上传模板/文档  │                │                                │
  │───────────────▶│──POST files──▶│──────────────────────────────────────────────────────────▶ 存原始文件
  │                │               │  (预解析任务入队) ──▶ 预解析(轻量) ─▶ 解析摘要落库
  │  提交生成       │               │
- │───────────────▶│──POST jobs──▶ │ 建Job(queued) ─▶ LPUSH 任务
+ │───────────────▶│──POST jobs──▶ │ 建Job(pending) ─▶ LPUSH 任务
  │                │◀─ job_id ─────│
  │                │──GET events(SSE)──▶ 订阅 progress:{job_id}
  │                │               │                │◀─ BRPOP ──────│
@@ -399,7 +401,7 @@ QA 阶段追加：标题重复、核心观点重复、数据重复检测；专�
  │                │               │                │               │──PPTX──▶ 转PDF ──▶ PNG
  │                │◀═ thumbnail_ready ═════════════════════════════│                    ──▶ 存产物
  │                │◀═ job_done(quality_score) ═════════════════════│
- │  预览/下载      │──GET output──▶│ 生成预签名URL ─────────────────────────────────────────▶ 直连下载
+ │  预览/下载      │──GET output──▶│ 后端代理读取对象 ────────────────────────────────▶ 返回文件流
 ```
 
 ### 5.2 断点重试流程
@@ -465,7 +467,7 @@ Stage 状态：`pending → running → success | warning | failed | skipped`。
 | stage_code | 名称 | fast | standard | premium |
 |---|---|:-:|:-:|:-:|
 | VALIDATE | 输入校验 | ✓ | ✓ | ✓ |
-| PARSE_DOC | 文档解析（含 OCR） | ✓ | ✓ | ✓ |
+| PARSE_DOC | 文档解析（OCR 未接入；无有效文本返回 E2003） | ✓ | ✓ | ✓ |
 | PARSE_TPL | 模板解析 | ✓ | ✓ | ✓ |
 | KNOWLEDGE | 内容理解/知识建模 | 轻量 | ✓ | 深度+RAG |
 | FACT_CHECK | 事实登记与冲突检测 | 规则 | ✓ | ✓(交互) |
@@ -515,7 +517,7 @@ Stage 状态：`pending → running → success | warning | failed | skipped`。
 
 ## 7. API 设计
 
-Base：`/api/v1`；认证：V1 简单 Token（预留 OIDC）；所有响应 `{code, message, data}` 包裹。
+Base：`/api/v1`；当前无登录鉴权（CORS 全开放，`user_id` 仅预留）；所有业务响应 `{code, message, data}` 包裹。
 
 | 方法 | 路径 | 说明 |
 |---|---|---|
@@ -534,18 +536,26 @@ Base：`/api/v1`；认证：V1 简单 Token（预留 OIDC）；所有响应 `{co
 | POST | /jobs/{id}/beautify | 历史任务一键美化：fork 子版本 Job 复用内容成果，只重跑 RENDER→BEAUTIFY→CONVERT→QA→PUBLISH |
 | POST | /jobs/{id}/decisions/{decision_id} | 提交用户决策（冲突选择/预算方案/内容不足选项） |
 | GET | /jobs/{id}/slides | 页面清单（内容卡片+缩略图 URL+来源） |
-| GET | /jobs/{id}/output | 产物预签名 URL：`{pptx, pdf?, report?}` |
-| GET | /jobs/{id}/pages/{n}/image | 单页大图（302 → 预签名 URL） |
+| GET | /jobs/{id}/output | 产物下载地址（指向后端代理 `/download/{kind}`） |
+| GET | /jobs/{id}/pages/{n}/image | 单页大图（后端代理读取 PNG） |
 | GET | /jobs/{id}/report | 质检报告 JSON |
 | GET | /jobs/{id}/versions | 版本链（parent/child Job 列表） |
-| GET | /admin/stats | 聚合统计（成功率/各模式 P50/P90 耗时/LLM token） |
-| GET | /healthz, /readyz | 健康检查（依赖探测：DB/Redis/MinIO/soffice） |
+| POST | /beautify | 独立 PPTX 美化：同步评分、确定性微调并保存结果 |
+| GET | /beautify | 独立美化记录列表 |
+| GET | /beautify/{id}/download | 独立美化产物下载（后端代理） |
+| GET | /pptmaster/options | ppt-master 入参、Agent 探测和仓库状态 |
+| POST/GET | /pptmaster/jobs | ppt-master 异步提交与列表 |
+| GET/POST/DELETE | /pptmaster/jobs/{id}/* | 详情、取消、删除、产物/预览/日志 |
+| GET | /admin/stats | 后端聚合统计接口（当前无管理端页面） |
+| GET | /healthz, /readyz | 健康检查（DB/Redis/MinIO；转换状态可能为 `degraded`） |
 
 ---
 
 ## 8. 表设计（PostgreSQL 16）
 
-约定：主键 `id BIGSERIAL`；对外暴露 `biz_id`（如 `ppt_20260813_00128`）；时间一律 `TIMESTAMPTZ`；软删 `deleted_at`；所有表含 `created_at/updated_at`。
+以下 SQL 是字段语义设计稿；运行时以 `backend/app/models/models.py` 为准，应用启动通过 SQLAlchemy `create_all` 幂等建表，并用 `ADD COLUMN IF NOT EXISTS` 补充视觉字段，当前未接 Alembic。当前 ORM 共 15 张表：`templates`、`template_slides`、`documents`、`generation_jobs`、`job_stages`、`job_slides`、`facts`、`fact_conflicts`、`job_decisions`、`llm_calls`、`validation_reports`、`job_events`、`doc_chunks`、`beautify_records`、`pptmaster_jobs`。
+
+约定：主键 `id BIGSERIAL`；对外暴露 `biz_id`（如 `ppt_20260813_00128`）；时间一律 `TIMESTAMPTZ`；软删 `deleted_at`；主要业务表含 `created_at/updated_at`。
 
 ### 8.1 templates — 模板
 
@@ -602,7 +612,7 @@ CREATE TABLE documents (
   char_count    INT,
   table_count   INT,
   image_count   INT,
-  is_scanned    BOOLEAN DEFAULT FALSE,           -- 扫描件(走OCR)
+  is_scanned    BOOLEAN DEFAULT FALSE,           -- 扫描件标记（当前不自动 OCR）
   parse_status  VARCHAR(16) NOT NULL DEFAULT 'parsing', -- parsing|ready|failed
   parse_error   VARCHAR(64),
   ir_key        VARCHAR(512),                    -- Document IR 在 MinIO 的键
@@ -801,17 +811,18 @@ CREATE TABLE job_events (                        -- 追加型事件流水(审计
   UNIQUE(job_id, seq)
 );
 
-CREATE TABLE doc_chunks (                        -- 专业模式 RAG
+CREATE TABLE doc_chunks (                        -- RAG 数据骨架，当前未接 pgvector
   id          BIGSERIAL PRIMARY KEY,
   document_id BIGINT NOT NULL REFERENCES documents(id),
   chunk_index INT NOT NULL,
   content     TEXT NOT NULL,
   source_pages INT[] NOT NULL,
-  embedding   VECTOR(1024),                      -- text-embedding-v3 维度
+  embedding   JSONB,                             -- 当前以 JSON 数组保存，Python 内检索
   UNIQUE(document_id, chunk_index)
 );
-CREATE INDEX idx_chunks_vec ON doc_chunks USING hnsw (embedding vector_cosine_ops);
 ```
+
+`beautify_records` 保存独立 PPTX 美化的源文件、产物和九维报告；`pptmaster_jobs` 保存 ppt-master 的输入快照、运行日志、产物数组、预览列表和 Agent 用量。二者均已在 ORM 中实现，设计稿 SQL 略去重复字段。
 
 ### 8.11 ER 关系摘要
 
@@ -852,7 +863,7 @@ ppt-gen/
 ```python
 class ObjectStorage(Protocol):
     def put(self, key, data, content_type): ...
-    def presign_get(self, key, expires=3600) -> str: ...
+    def presign_get(self, key, expires=3600) -> str: ...  # 保留能力，当前下载主要不走它
     def exists(self, key) -> bool: ...
 # 实现: MinIOStorage / AliyunOSSStorage(S3兼容, 仅endpoint/签名差异)
 # 通过 STORAGE_BACKEND=minio|oss 环境变量切换, 业务代码零改动
@@ -860,10 +871,10 @@ class ObjectStorage(Protocol):
 
 ### 9.3 在线预览
 
-- 预览走**逐页 PNG**（内网可用、无 Office 依赖）：前端翻页组件加载 `pages/page-{n}.png` 预签名 URL；
-- PDF 提供整册下载/浏览器内嵌预览兜底；
-- 转换链：`final.pptx → (unoserver) preview.pdf → (PyMuPDF, 150dpi) page-{n}.png → (Pillow) thumbs`；
-- fast 模式该链路异步执行：PPTX 就绪即 `job_done`，缩略图随后通过 `thumbnail_ready` 事件补推。
+- 预览走**逐页 PNG/SVG**：主流水线由 Worker 内置 LibreOffice 转 PDF，再由 PyMuPDF 输出页面图；ppt-master 优先使用 SVG 页面，若镜像内可转换则补充 PNG；
+- 下载和预览当前由 API 读取 MinIO 后端代理返回，`S3_PUBLIC_ENDPOINT` 主要用于兼容预签名/外部部署场景，不应在文档中假定浏览器直连 MinIO；
+- 转换链：`final.pptx → soffice（Worker 内进程）→ preview.pdf → PyMuPDF → pages/thumbs`；`CONVERT_BACKEND=none` 时保留 PPTX 但预览降级；
+- fast 模式仍按主流水线实现决定是否异步补齐预览，具体以任务事件和 `pdf_key` 是否存在为准。
 
 ---
 
@@ -912,66 +923,77 @@ issues → 分派: 布局类→Layout Engine(确定性) / 文案类→Repair Age
 
 ## 11. 容器化部署
 
-### 11.1 docker-compose.yml（骨架）
+### 11.1 当前 `deploy/docker-compose.yml`
 
 ```yaml
+name: ppt-generator
 services:
   frontend:
     build: ../frontend
-    ports: ["80:80"]
-    depends_on: [api]
-    # nginx: 静态资源 + /api 反代到 api:8000, SSE 需 proxy_buffering off
+    ports: ["8081:80"]
+    depends_on: {api: {condition: service_healthy}}
 
   api:
-    build: ../backend
-    command: uvicorn app.main:app --host 0.0.0.0 --port 8000 --workers 2
+    build: {context: ../backend, target: api}
+    ports: ["8000:8000"]
     env_file: .env
-    depends_on: {postgres: {condition: service_healthy},
-                 redis: {condition: service_healthy},
-                 minio: {condition: service_healthy}}
-    healthcheck: {test: ["CMD", "curl", "-f", "http://localhost:8000/healthz"],
-                  interval: 10s, retries: 5}
-    deploy: {resources: {limits: {memory: 1G}}}
+    environment: {PPTMASTER_EXECUTION_SCOPE: worker}
+    depends_on:
+      postgres: {condition: service_healthy}
+      redis: {condition: service_healthy}
+      minio: {condition: service_healthy}
+    healthcheck: {test: ["CMD", "curl", "-f", "http://localhost:8000/healthz"], interval: 10s, timeout: 5s, retries: 6, start_period: 20s}
 
   worker:
-    build: ../backend                      # 与 api 同镜像
-    command: celery -A app.worker worker -Q generate,convert -c 4 --max-tasks-per-child 50
+    build: {context: ../backend, target: worker}
     env_file: .env
-    depends_on: [api]
-    deploy:
-      replicas: 2                          # 水平扩容点
-      resources: {limits: {memory: 2G}}
+    depends_on:
+      postgres: {condition: service_healthy}
+      redis: {condition: service_healthy}
+      minio: {condition: service_healthy}
 
-  soffice:
-    image: libreoffice-unoserver:latest    # 自建镜像: LibreOffice + unoserver + Noto CJK 字体
-    healthcheck: {test: ["CMD", "curl", "-f", "http://localhost:2004/healthz"]}
-    deploy: {resources: {limits: {memory: 1.5G}}}
+  pptmaster-worker:
+    build: {context: ../backend, target: pptmaster-worker}
+    profiles: [pptmaster]
+    env_file: .env
+    environment: {PPTMASTER_REPO_DIR: /opt/ppt-master, PPTMASTER_EXECUTION_SCOPE: worker}
+    volumes: [pptmaster-projects:/opt/ppt-master/projects]
+    depends_on:
+      postgres: {condition: service_healthy}
+      redis: {condition: service_healthy}
+      minio: {condition: service_healthy}
 
   postgres:
     image: pgvector/pgvector:pg16
-    volumes: [pgdata:/var/lib/postgresql/data, ./init/db:/docker-entrypoint-initdb.d]
-    healthcheck: {test: ["CMD-SHELL", "pg_isready -U ppt"], interval: 5s}
+    environment: {POSTGRES_USER: ppt, POSTGRES_PASSWORD: ppt, POSTGRES_DB: ppt}
+    ports: ["127.0.0.1:15432:5432"]
+    volumes: [pgdata:/var/lib/postgresql/data, ./init/db:/docker-entrypoint-initdb.d:ro]
+    healthcheck: {test: ["CMD-SHELL", "pg_isready -U ppt"], interval: 5s, timeout: 3s, retries: 10}
 
   redis:
     image: redis:7-alpine
     command: redis-server --appendonly yes
-    healthcheck: {test: ["CMD", "redis-cli", "ping"], interval: 5s}
+    ports: ["127.0.0.1:6379:6379"]
+    volumes: [redisdata:/data]
+    healthcheck: {test: ["CMD", "redis-cli", "ping"], interval: 5s, timeout: 3s, retries: 10}
 
   minio:
-    image: minio/minio
+    image: minio/minio:latest
     command: server /data --console-address ":9001"
+    environment: {MINIO_ROOT_USER: pptadmin, MINIO_ROOT_PASSWORD: pptadmin123}
+    ports: ["9000:9000", "9001:9001"]
     volumes: [miniodata:/data]
-    healthcheck: {test: ["CMD", "mc", "ready", "local"], interval: 10s}
+    healthcheck: {test: ["CMD", "curl", "-f", "http://localhost:9000/minio/health/live"], interval: 10s, timeout: 5s, retries: 6}
 
-  minio-init:                              # 一次性: 建 bucket + 生命周期策略
-    image: minio/mc
-    depends_on: [minio]
-    entrypoint: ["/bin/sh", "/init/minio-init.sh"]
+  minio-init:
+    image: minio/mc:latest
+    depends_on: {minio: {condition: service_healthy}}
+    entrypoint: /bin/sh -c "mc alias set local http://minio:9000 pptadmin pptadmin123 && (mc mb -p local/ppt-gen || true)"
 
-volumes: {pgdata: {}, miniodata: {}}
-# 监控: docker compose -f docker-compose.yml -f docker-compose.monitoring.yml up
-#       (prometheus + grafana + redis/postgres exporter)
+volumes: {pgdata: {}, redisdata: {}, miniodata: {}, pptmaster-projects: {}}
 ```
+
+默认启动 7 个服务容器；启用 `pptmaster` profile 后增加 `pptmaster-worker`。`minio-init` 是一次性初始化容器，执行成功后 `Exited (0)` 属于正常状态。没有独立 `soffice` 容器，LibreOffice 已安装在 `worker` 与 `pptmaster-worker` 镜像中。
 
 ### 11.2 镜像与环境要点
 
@@ -979,7 +1001,7 @@ volumes: {pgdata: {}, miniodata: {}}
 |---|---|
 | frontend | 多阶段构建（node:20 build → nginx:alpine）；nginx 对 `/api/v1/jobs/*/events` 关闭缓冲（SSE） |
 | backend（api/worker 共用） | python:3.11-slim；内置 Noto Sans CJK / Source Han Sans 字体（渲染度量一致性）；`--max-tasks-per-child` 防内存泄漏 |
-| soffice | LibreOffice + unoserver 常驻（避免冷启动 3~5s）；内置同套 CJK 字体，保证转换结果与渲染一致 |
+| pptmaster-worker | 以 UID/GID 10001 非 root 用户在独立队列执行 Agent；镜像内置 Node、Claude Code、Codex CLI、ppt-master v4.8.0、LibreOffice 与其 Python 依赖 |
 
 关键环境变量（.env.example）：
 
@@ -987,24 +1009,27 @@ volumes: {pgdata: {}, miniodata: {}}
 # LLM
 QWEN_API_KEY=...            QWEN_BASE_URL=https://dashscope.aliyuncs.com/compatible-mode/v1
 DEEPSEEK_API_KEY=...        DEEPSEEK_BASE_URL=https://api.deepseek.com
-LLM_ROUTE_CONFIG=/config/llm_routes.yaml
 LLM_MAX_CONCURRENCY_PER_PROVIDER=8
 # 存储
 STORAGE_BACKEND=minio                       # minio | oss
-S3_ENDPOINT=http://minio:9000  S3_BUCKET=ppt-gen  S3_AK=...  S3_SK=...
-PRESIGN_EXPIRES=3600
+S3_ENDPOINT=http://minio:9000  S3_BUCKET=ppt-gen  S3_ACCESS_KEY=...  S3_SECRET_KEY=...
+S3_PUBLIC_ENDPOINT=http://localhost:9000
 # 任务
 JOB_TIMEOUT_FAST=300  JOB_TIMEOUT_STANDARD=900  JOB_TIMEOUT_PREMIUM=1800
-USER_MAX_CONCURRENT_JOBS=3
-ARTIFACT_RETENTION_DAYS=30  CHECKPOINT_RETENTION_DAYS=7
+VISION_QA_ENABLED=false  OCR_ENABLED=false
+# ppt-master（百炼 Claude Code 示例）
+PPTMASTER_EXECUTION_SCOPE=worker  PPTMASTER_DEFAULT_AGENT=auto
+PPTMASTER_CLAUDE_MODEL=qwen3.7-plus
+ANTHROPIC_AUTH_TOKEN=...  ANTHROPIC_BASE_URL=https://<WorkspaceId>.cn-beijing.maas.aliyuncs.com/apps/anthropic
 ```
+
+Worker 执行域下 API 不依赖本地仓库/CLI：提交时只校验 Agent 枚举，`pptmaster-worker` 领取任务后重新探测并解析实际 Agent。`/options` 的 `repo.ready=false`、`repo.delegated=true` 组合是正常状态。
 
 ### 11.3 扩容与高可用
 
-- **扩容点只有一个**：`worker.replicas`（及 LLM Provider 并发上限同步调整）；api 无状态可加副本；
-- Worker 使用 Celery `acks_late + visibility_timeout`：Worker 崩溃后任务回队重派；阶段幂等 + checkpoint 保证重派不重复计费大段 LLM 调用；
-- soffice 无状态，可加副本 + 轮询负载；
-- 定时任务（Celery beat）：过期产物清理、僵尸任务标记（超硬超时的 running → failed E7001）、决策超时处理。
+- **扩容点**：普通 `worker` 可按队列吞吐扩容；`pptmaster-worker` 默认并发 1，按 Agent 费用和资源谨慎扩容；API 可加副本但当前 Compose 未配置副本数；
+- 当前文档保留 Celery 重派/断点幂等作为设计目标，不能据此推断所有阶段已实现完整断点恢复；
+- 产物清理、僵尸任务扫描和 Celery beat 尚未接入，相关留存配置目前只是配置项。
 
 ---
 
@@ -1012,11 +1037,10 @@ ARTIFACT_RETENTION_DAYS=30  CHECKPOINT_RETENTION_DAYS=7
 
 | 层 | 内容 |
 |---|---|
-| 日志 | JSON 结构化，贯穿字段：`job_id, stage, attempt, provider`；错误必含 error_code；Docker json-file + 可选 Loki |
-| 指标（Prometheus） | `job_total{mode,status}`、`job_duration_seconds{mode,pages_bucket}` 直方图、`stage_duration_seconds{stage}`、`llm_call_duration{provider,model}`、`llm_tokens_total`、`fallback_total{kind}`、队列深度 |
-| 看板（Grafana） | 成功率、P50/P90 各模式耗时、阶段耗时瀑布、Provider 健康度、token 成本日报 |
-| 追踪 | V1 用 job_events + job_stages 即可完成回放；V2 接 OpenTelemetry |
-| 告警 | 成功率 <95%（15min）、队列积压 >50、Provider 熔断、soffice 不健康 |
+| 当前日志/记录 | 应用结构化日志、`job_events`/`job_stages`、LLM 调用记录和 ppt-master 的可读日志/原始事件流；Docker 默认使用容器日志驱动 |
+| 当前健康检查 | `/healthz` 只检查进程存活；`/readyz` 检查 DB、Redis、MinIO，转换能力异常时标记 `convert: degraded` |
+| Prometheus/Grafana | 尚未接入 Compose；指标名、看板和告警仍是后续规划，不应作为本地启动依赖 |
+| 追踪 | 当前以任务事件和阶段记录回放；OpenTelemetry 为后续规划 |
 
 ---
 
@@ -1053,7 +1077,7 @@ est_seconds = base(mode) + pages × per_page(mode, density) + doc_factor
 M1 (最小闭环, 仅fast):
   1 存储抽象+上传   2 PDF/DOCX解析   3 模板解析(11版式)   4 LLM Gateway(qwen+deepseek)
   5 OUTLINE_PLAN_COMBO   6 章节并行CONTENT   7 Renderer(11版式)   8 规则QA
-  9 PUBLISH+预签名   10 SSE进度   11 错误码+整任务重试   12 docker compose 全量部署
+  9 PUBLISH+后端代理下载   10 SSE进度   11 错误码+整任务重试   12 docker compose 全量部署
 M2 (三模式+质量):
   13 标准模式DAG(页级并行+打分匹配+度量QA+1轮修复)   14 断点重试(checkpoint)
   15 Fact Registry+冲突交互   16 premium DAG(Vision QA+3轮修复)   17 耗时看板

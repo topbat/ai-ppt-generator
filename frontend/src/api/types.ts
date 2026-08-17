@@ -339,3 +339,113 @@ export interface JobFailedEvent {
   error_message?: string;
   failed_stage?: string;
 }
+
+/** ---------- ppt-master 生成 ---------- */
+/** 通用枚举项（key 为提交值，label 为展示名） */
+export interface OptionItem {
+  key: string;
+  label: string;
+  desc?: string;
+}
+
+/** GET /pptmaster/options：可选项与限制 */
+export interface PptMasterOptions {
+  /** local=当前 API 进程执行；worker=独立 pptmaster-worker 执行 */
+  execution_scope?: 'local' | 'worker';
+  /** ppt-master 仓库是否就绪 */
+  repo: { dir: string; ready: boolean; version: string | null; delegated?: boolean };
+  agents: {
+    key: 'claude' | 'codex' | 'mock';
+    label: string;
+    available: boolean;
+    bin?: string;
+    note?: string;
+  }[];
+  /** 'claude' | 'codex' | 'mock' */
+  default_agent: string;
+  /** files 上传源文件 / topic 仅主题 / text 粘贴文本 / url 网页链接 */
+  input_modes: OptionItem[];
+  /** generate / template_fill / beautify / enhance / image_to_pptx / create_template */
+  routes: (OptionItem & { needs_template?: boolean; needs_pptx?: boolean; agents?: string[] })[];
+  /** quick 快速生成(推荐) / default 完整流程 */
+  profiles: OptionItem[];
+  /** ppt169/ppt43/xiaohongshu/moments/story/wechat/banner/a4 */
+  canvas_formats: (OptionItem & { size: string; ratio: string })[];
+  /** auto + 内置风格 + custom */
+  styles: OptionItem[];
+  narrative_modes: OptionItem[];
+  reading_modes: OptionItem[];
+  languages: OptionItem[];
+  image_sources: OptionItem[];
+  limits: {
+    max_files: number;
+    max_upload_mb: number;
+    pages_min: number;
+    pages_max: number;
+    timeout_minutes_default: number;
+    timeout_minutes_max: number;
+  };
+  /** 允许上传的扩展名，如 ['.pdf', '.docx', ...] */
+  accept_extensions: string[];
+}
+
+export type PptMasterStatus = 'pending' | 'running' | 'succeeded' | 'failed' | 'canceled';
+
+/** 产物条目（download_url 为后端代理下载地址） */
+export interface PptMasterOutput {
+  kind: 'pptx' | 'pptx_native' | 'pptx_narrated' | 'pdf' | 'log' | 'report' | string;
+  name: string;
+  size: number;
+  download_url: string;
+}
+
+/** 列表项（GET /pptmaster/jobs） */
+export interface PptMasterJob {
+  job_id: string;
+  title: string;
+  input_mode: string;
+  route: string;
+  profile: string;
+  agent: string;
+  model: string | null;
+  status: PptMasterStatus;
+  progress: number;
+  /** 当前阶段中文描述 */
+  stage: string | null;
+  /** 提交时的全部参数（原样） */
+  params: Record<string, unknown>;
+  source_files: { name: string; size: number }[];
+  template_name: string | null;
+  /** 成功后非空 */
+  outputs: PptMasterOutput[];
+  /** 主产物下载地址（便捷字段） */
+  pptx_url: string | null;
+  /** 可预览页数（0=无预览） */
+  preview_pages: number;
+  /** /api/v1/pptmaster/jobs/{id}/pages/{n}/image（svg 或 png） */
+  preview_urls: string[];
+  page_count: number | null;
+  file_size: number | null;
+  error_message: string | null;
+  created_at: string;
+  started_at: string | null;
+  finished_at: string | null;
+  duration_ms: number | null;
+  /** Agent 用量（运行结束后回填）：cost_usd / num_turns / returncode / final_text */
+  run?: { cost_usd?: number | null; num_turns?: number | null; returncode?: number | null; final_text?: string } | null;
+}
+
+/** 详情（GET /pptmaster/jobs/{id}） */
+export interface PptMasterJobDetail extends PptMasterJob {
+  /** 实际发给 Agent 的提示词 */
+  prompt: string;
+  /** 最近约 4KB 日志（running 时随轮询更新） */
+  log_tail: string;
+  /** /api/v1/pptmaster/jobs/{id}/log */
+  log_url: string;
+}
+
+export interface PptMasterJobListResult {
+  items: PptMasterJob[];
+  total: number;
+}

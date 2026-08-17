@@ -122,7 +122,7 @@
 | # | 输入 | 类型 | 约束 | 默认值 |
 |---|---|---|---|---|
 | 1 | PPT 模板 | .pptx 文件 | ≤ 50MB；可解析；支持选择历史模板或内置默认模板 | 系统默认模板 |
-| 2 | 主说明文档 | .pdf / .docx | ≤ 100MB；≤ 500 页；可解析出有效文本（否则走 OCR） | 必填 |
+| 2 | 主说明文档 | .pdf / .docx | ≤ 100MB；可解析出有效文本；扫描件当前明确拒绝（E2003） | 必填 |
 | 3 | 页数 | 整数 | 5～100 页；与章节结构冲突时触发 Page Budget Conflict 交互 | 系统按内容量推荐 |
 | 4 | 模式 | 枚举 | fast（极速）/ standard（标准）/ premium（专业） | **fast（极速）** |
 | 5 | 内容密度 | 枚举 | low（紧凑）/ medium（标准）/ high（充实） | medium |
@@ -130,7 +130,7 @@
 **输入校验（InputGuard，上传后立即执行）：**
 
 - 文件类型/大小/完整性检查 → 解析试读 → 内容统计（字数、页数、图片数、表格数）；
-- PDF 无有效文本 → 自动判定扫描件 → 走 OCR 流程并提示"OCR 结果的关键数字将进入事实核验"；
+- PDF/DOCX 无有效文本 → 自动判定为扫描件/空文档 → 明确返回 E2003，要求用户提供可复制文本版本；OCR 是后续能力，不属于当前实现；
 - 模板无法解析 → 提示更换或使用系统默认模板；
 - 加密/损坏文件 → 明确报错（错误码），禁止"解析失败 → AI 编内容"。
 
@@ -147,7 +147,7 @@
 - 进度推送：前端通过 SSE（降级为轮询）获得阶段级 + 页级进度；
 - **边生成边看**：单页内容生成完成即推送该页结构化内容卡片；渲染完成后推送缩略图；
 - 支持取消执行中的任务；
-- 同一用户并发任务数可配置（默认 3），超出排队。
+- 任务排队由 Celery/Worker 处理；`USER_MAX_CONCURRENT_JOBS` 目前只有配置字段，尚未实现按用户限流。
 
 ### 5.3 FR-3 三种模式（核心差异化需求）
 
@@ -156,17 +156,17 @@
 | 能力 | ⚡ 极速模式（默认） | 🚀 标准模式 | 💎 专业模式 |
 |---|---|---|---|
 | 定位 | 内部草稿、快速汇报 | 日常正式汇报 | 对外方案、领导汇报、咨询报告 |
-| 文档理解 | 规则解析 + 单次 LLM 摘要 | 结构化知识建模 | 深度知识建模 + Fact Registry + RAG |
+| 文档理解 | 规则解析 | 规则解析 + 章节摘要 | 规则解析 + Fact Registry/冲突检测（RAG 仅有数据模型骨架） |
 | 大纲 | 大纲+页面规划合并为 1 次调用 | 独立 Outline Agent + OutlineGuard | Outline Agent + Guard +（可选）用户确认 |
-| 页面内容 | 按章节批量生成（1 章 1 次调用），章节间并行 | 页级并行生成 | 页级并行 + RAG 逐页取证 + 来源标注 |
+| 页面内容 | 按章节批量生成，章节间并行 | 页级并行生成 | 页级并行 + 已核验事实提示注入；完整 RAG 逐页取证尚未实现 |
 | 模板匹配 | 规则直配（类型表查找） | 打分匹配（类型/元素/长度/均衡） | 打分匹配 + 密度自适应换版 |
-| 事实保障 | 关键数字校验（正则+比对） | 关键事实抽取与比对 | 完整 Fact Registry + 冲突交互 + 等级管控 |
+| 事实保障 | 关键数字校验（正则+比对） | 关键数字校验并进入报告 | Fact Registry + 冲突交互 + 专业模式数字剔除 |
 | 布局 QA | 规则校验（字数预算/溢出估算） | 规则 + 实测文本度量（Pillow） | 规则 + 度量 + Vision QA（多模态模型） |
-| 自动修复 | 仅确定性修复（压缩/换版式），0 轮 LLM 修复 | ≤ 1 轮修复 | ≤ 3 轮修复闭环 |
+| 自动修复 | 主链路不运行 REPAIR，内容/版式规则降级 | BEAUTIFY 规则闭环（最多 2 轮）+ REPAIR | BEAUTIFY（最多 2 轮，可选 Vision Critic）+ REPAIR（最多 3 轮） |
 | 预览产物 | PPTX + 整套缩略图 | PPTX + 缩略图 + PDF | PPTX + 缩略图 + PDF + 质检报告 + 来源清单 |
 | 推荐模型 | qwen-flash / deepseek-chat | qwen-plus / deepseek-chat | qwen-max + deepseek-reasoner + qwen-vl-max |
-| LLM 调用量（10 页参考） | 3～5 次 | 12～16 次 | 25～35 次 |
-| 目标（10 页） | 20～40s | 40～90s | 1～3min |
+| LLM 调用量（10 页目标） | 3～5 次 | 12～16 次 | 25～35 次 |
+| 目标（10 页，未作为当前仓库压测承诺） | 20～40s | 40～90s | 1～3min |
 
 **模式共同底线（任何模式不得突破）：**
 
@@ -204,7 +204,7 @@
 |---|---|---|---|
 | 模板缺目标版式（如无 architecture 页） | 近似版式匹配 | 系统标准版式 | 原生 Shape 动态绘制 |
 | 模板只有封面 | 提取 Logo/配色/字体/背景 | 系统 Layout 生成正文 | 默认模板 |
-| PDF 无文本（扫描件） | OCR | Vision 模型识别 | 提示用户补充可编辑文档 |
+| PDF 无文本（扫描件） | 明确报错 E2003 | — | 提示用户补充可编辑文档；OCR 为后续能力 |
 | 图片处理失败 | 使用原图 | SVG 生成 | 图形占位 + Warning |
 | 图表数据异常 | 数据清洗后原生 Chart | 降级为表格 | 文字要点 + Warning |
 | AI 返回非法 JSON | 自动重试（换 Provider） | JSON 修复器 | 该页降级为 title_content 版式 |
@@ -232,11 +232,11 @@
 
 ### 5.8 FR-8 存储与在线预览
 
-- 产物统一上传对象存储，**存储层抽象**：默认 MinIO（私有化），可配置切换阿里云 OSS（S3 兼容协议，一套代码）；
+- 产物统一上传对象存储，**存储层抽象**：默认 MinIO，可配置切换 S3 兼容的 OSS；
 - 产物包括：`final.pptx`、`preview.pdf`、逐页 `page-{n}.png` 缩略图/大图、`report.json` 质检报告、中间产物（Presentation JSON、Knowledge Model）；
 - **在线预览**：基于逐页 PNG 的翻页预览（不依赖 Office 在线服务，内网可用）；提供 PDF 预览与下载作为补充；
-- 下载通过预签名 URL（有效期可配置，默认 1 小时），不经业务服务中转大文件；
-- 产物保留策略可配置（默认 30 天，中间产物 7 天）。
+- 当前 API 下载接口通过后端代理对象存储内容；存储层保留预签名能力，但不是当前所有下载接口的默认路径；
+- `ARTIFACT_RETENTION_DAYS`/`CHECKPOINT_RETENTION_DAYS` 目前只有配置字段，尚未实现自动清理任务。
 
 ### 5.9 FR-9 全链路耗时记录
 
@@ -258,7 +258,7 @@
 | 复杂推理（专业模式规划/修复） | deepseek-reasoner | qwen-max |
 | 结构化 JSON 输出 | qwen-plus（JSON mode） | deepseek-chat |
 | Vision QA / OCR 辅助 | qwen-vl-max | qwen-vl-plus |
-| Embedding（RAG） | text-embedding-v3（DashScope） | bge-m3（本地） |
+| Embedding（RAG，后续） | text-embedding-v3（DashScope） | bge-m3（本地） |
 
 - Provider 级熔断与自动切换；全部模型参数（key、base_url、模型名、超时、限流）通过环境变量/配置中心管理，不写死。
 
@@ -274,14 +274,14 @@
 
 | 类别 | 需求 |
 |---|---|
-| 部署 | 全容器化（前端、API、Worker、Redis、PostgreSQL、MinIO、LibreOffice 均为容器）；docker compose 一键部署；支持后续 K8s |
+| 部署 | 前端、API、Worker、Redis、PostgreSQL、MinIO 容器化；LibreOffice 内置在 Worker 镜像；docker compose 一键部署；支持后续 K8s |
 | 性能 | 见 §3.1 速度目标；API P99 < 500ms（不含生成任务本身）；单 Worker 内存 < 2GB |
 | 并发 | 默认支持 10 个并发生成任务；Worker 水平扩容即可线性提升 |
 | 可用性 | 单任务失败不影响其他任务；Worker 崩溃后任务可被重新调度（幂等阶段设计） |
-| 可观测 | 结构化日志（含 job_id/stage 贯穿）；Prometheus 指标（任务数、成功率、阶段耗时、LLM 耗时/token）；Grafana 看板 |
-| 安全 | 文件类型白名单 + 内容嗅探；上传隔离存储；预签名 URL 限时访问；API Key 服务端保管；（V1 单租户，预留 user_id 字段支持多租户） |
+| 可观测 | 当前提供结构化日志、job/stage/LLM 调用落库；Prometheus 指标与 Grafana 看板为后续能力 |
+| 安全 | 当前有扩展名/大小白名单和对象存储隔离；无登录鉴权，CORS 全开放，`user_id` 仅为预留字段 |
 | 字体 | 容器内置 Noto Sans CJK / Source Han Sans，Font Resolver 处理字体缺失映射 |
-| 数据 | 生成过程数据可追溯（Presentation JSON、阶段 checkpoint 留存 7 天）；用户文件默认 30 天清理 |
+| 数据 | Presentation JSON、阶段 checkpoint 和事件可追溯；留存天数配置已存在，但自动清理尚未实现 |
 | 兼容 | 产出 PPTX 兼容 Office 2016+ / WPS；不使用 python-pptx 不支持的高级特性（复杂 SmartArt、动画） |
 
 ---
@@ -291,6 +291,10 @@
 - PPT 动画、切换效果；
 - 复杂 SmartArt（用原生 Shape 组合替代）；
 - 在线协同编辑 PPT（提供下载后本地编辑）；
+- 扫描件 OCR；
+- 完整向量 RAG 检索与 embedding 生成；
+- Prometheus/Grafana、自动清理和按用户并发限流；
+- 登录鉴权、多租户隔离；
 - 单页/单章级重新生成（V2）；
 - 模板市场、风格迁移（V3）；
 - 多文档联合生成（V1 仅一份主文档 + 可选附件图片）；
@@ -303,15 +307,15 @@
 | 编号 | 用例 | 通过标准 |
 |---|---|---|
 | AC-01 | 正常链路：模板 + 30 页 PDF，10 页/极速/标准密度 | ≤ 60s 产出可打开 PPTX，页数=10，模板视觉保留 |
-| AC-02 | 扫描件 PDF | 自动 OCR，任务成功；OCR 数字进入事实核验 |
+| AC-02 | 扫描件 PDF | 明确返回 E2003，并提示用户上传可复制文本的 PDF/DOCX；不允许“解析失败后由 AI 补写” |
 | AC-03 | 模板缺 architecture 版式 | 自动 fallback，任务成功，报告含 Info 记录 |
 | AC-04 | 文档含冲突数字（专业模式） | 生成暂停等待用户选择；选择后继续 |
 | AC-05 | 目标 10 页但含 8 章 | 触发 Page Budget Conflict，提供四选项 |
 | AC-06 | LLM 单 Provider 完全故障 | 自动切换备用 Provider，任务成功 |
 | AC-07 | 任一失败任务 | 详情页展示失败阶段、错误码、可读原因；断点重试成功 |
-| AC-08 | 成功任务 | MinIO 中存在 pptx/pdf/png/report；在线预览可翻页；预签名下载可用 |
+| AC-08 | 成功任务 | MinIO 中存在 pptx/pdf/png/report；在线预览可翻页；后端代理下载可用（存储层保留预签名能力） |
 | AC-09 | 任意任务详情 | 展示每阶段开始/结束/耗时，总耗时=各阶段（含并行归并）自洽 |
-| AC-10 | 纯容器环境部署 | 全新机器 docker compose up 后，AC-01 可通过 |
+| AC-10 | 纯容器环境部署 | 全新机器 `docker compose up` 后主生成链路可通过；启用 `--profile pptmaster` 并配置兼容 Agent Provider 后，真实 Agent 的提交→生成→质检→导出→上传→预览→下载链路可通过（无凭据时 Mock 可联调） |
 
 ---
 

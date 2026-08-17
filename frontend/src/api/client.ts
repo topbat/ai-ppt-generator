@@ -83,3 +83,12 @@ export async function upload<T>(url: string, file: File): Promise<T> {
   });
   return resp.data;
 }
+
+/** multipart 表单上传（调用方自行组装 FormData：多文件 + 业务字段） */
+export async function uploadForm<T>(url: string, form: FormData): Promise<T> {
+  const resp = await http.post<T>(url, form, {
+    headers: { 'Content-Type': 'multipart/form-data' },
+    timeout: 600_000, // 多文件上传放宽超时
+  });
+  return resp.data;
+}

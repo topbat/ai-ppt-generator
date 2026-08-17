@@ -28,6 +28,8 @@ celery_app.conf.update(
         # 模板封面缩略图必须显式路由：不配置会进默认 celery 队列，而 Worker 只消费
         # generate/convert 两个队列，导致封面图永远不生成
         "app.worker.template_thumbnail": {"queue": "convert"},
+        # ppt-master 生成：独立队列，由单独的 Worker 进程消费（-Q pptmaster），不与生成流水线争抢并发
+        "app.worker.pptmaster_generate": {"queue": "pptmaster"},
     },
     timezone="Asia/Shanghai",
 )
@@ -138,3 +140,18 @@ def convert_preview(job_pk: int):
         do_convert(job_pk, biz_id, pptx_key, get_storage(), publisher)
     except Exception as e:
         logger.warning("异步预览转换失败(E6003 降级，不影响交付): %s", e)
+
+
+@celery_app.task(name="app.worker.pptmaster_generate", bind=True,
+                 time_limit=7500, soft_time_limit=7380)
+def pptmaster_generate(self, job_pk: int):
+    """ppt-master 生成任务：子进程驱动 Agent（Claude Code / Codex / Mock）在 ppt-master 仓库内执行工作流。
+
+    独立于生成流水线；任务级超时由 service 内按 timeout_minutes 控制（上限 PPTMASTER_TIMEOUT_MAX_MINUTES），
+    这里的 Celery 硬超时仅作兜底。
+    """
+    setup_logging()
+    _ensure_db()
+    logger.info("Worker 领取 ppt-master 任务 job_pk=%s (celery_id=%s)", job_pk, self.request.id)
+    from app.pptmaster.service import run_pptmaster_job
+    run_pptmaster_job(job_pk)

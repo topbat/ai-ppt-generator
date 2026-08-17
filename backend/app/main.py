@@ -108,6 +108,7 @@ from app.api.documents_api import router as documents_router  # noqa: E402
 from app.api.events_api import router as events_router        # noqa: E402
 from app.api.health_api import router as health_router        # noqa: E402
 from app.api.jobs_api import router as jobs_router            # noqa: E402
+from app.api.pptmaster_api import router as pptmaster_router  # noqa: E402
 from app.api.templates_api import router as templates_router  # noqa: E402
 
 API_PREFIX = "/api/v1"
@@ -116,5 +117,6 @@ app.include_router(beautify_router, prefix=API_PREFIX)
 app.include_router(documents_router, prefix=API_PREFIX)
 app.include_router(events_router, prefix=API_PREFIX)   # 先注册：/jobs/{id}/events 需优先匹配
 app.include_router(jobs_router, prefix=API_PREFIX)
+app.include_router(pptmaster_router, prefix=API_PREFIX)   # ppt-master 生成（独立能力）
 app.include_router(admin_router, prefix=API_PREFIX)
 app.include_router(health_router)  # /healthz /readyz 挂根路径

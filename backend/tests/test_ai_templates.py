@@ -1,5 +1,5 @@
 """AI 模板生成器冒烟测试（不依赖 DB/LLM）：
-1. 八维参数生成 + 结构硬性要求（封面/目录/3~5内容页/尾页）；
+1. 八维参数生成 + 结构硬性要求（封面/目录/5~8内容页/尾页）；
 2. 名称一律以 AI 为前缀；
 3. 模板解析器角色识别（cover/toc/content_frame/ending 齐备，可直接用于生成）；
 4. 非法参数回退默认，生成器永不炸。
@@ -45,9 +45,9 @@ def test_seed_presets():
         content = [r for r in roles if r not in _STRUCT]
         assert roles[0] == "cover", f"{name} 首页应为封面: {roles}"
         assert "toc" in roles and "ending" in roles, f"{name} 缺目录/尾页: {roles}"
-        assert 3 <= len(content) <= 5, f"{name} 内容页应为 3~5 个，实际 {len(content)}: {roles}"
+        assert 5 <= len(content) <= 8, f"{name} 内容页应为 5~8 个，实际 {len(content)}: {roles}"
         assert "content_frame" in roles, f"{name} 缺内容框架页（克隆底版）: {roles}"
-    print(f"✓ 10 套播种预设通过（页结构均满足 封面+目录+3~5内容页+尾页）")
+    print(f"✓ 10 套播种预设通过（页结构均满足 封面+目录+5~8内容页+尾页）")
 
 
 def test_full_params_and_fallback():
@@ -58,7 +58,7 @@ def test_full_params_and_fallback():
     name = template_name(p)
     assert name == "AI·城市文旅推介·活力明快", name
     roles = _parse(build_ai_template(p))
-    assert 3 <= len([r for r in roles if r not in _STRUCT]) <= 5
+    assert 5 <= len([r for r in roles if r not in _STRUCT]) <= 8
     # 非法参数回退默认，不炸
     junk = normalize_params({"industry": "外星采矿", "style": "赛博蒸汽波", "season": "梅雨",
                              "theme": "x" * 100})
