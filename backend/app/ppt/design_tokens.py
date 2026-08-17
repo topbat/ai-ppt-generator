@@ -25,6 +25,17 @@ TYPO = {
     "section_no": {"size": 88, "min": 48, "weight": 700, "line": 1.0},
 }
 
+# 语义角色字号范围。新构图层按角色校验，旧版式在逐步迁移前保持兼容。
+TYPO_ROLES = {
+    "cover_title": (32, 48),
+    "section_title": (28, 40),
+    "page_title": (24, 32),
+    "conclusion": (22, 30),
+    "body": (16, 22),
+    "chart_label": (12, 16),
+    "source": (10, 13),
+}
+
 # 密度 → 正文基准字号（不低于 16，演示可读性）
 BODY_SIZE_BY_DENSITY = {"low": 20, "medium": 18, "high": 16}
 MIN_BODY_SIZE = 13

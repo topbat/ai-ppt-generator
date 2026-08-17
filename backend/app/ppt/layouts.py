@@ -62,9 +62,11 @@ def _rect(slide, x, y, w, h, fill_hex, line_hex=None, rounded=False):
 
 def _text(rc, slide, text, x, y, w, h, size, color, bold=False,
           align=PP_ALIGN.LEFT, anchor=MSO_ANCHOR.TOP, font=None, min_size=MIN_BODY_SIZE,
-          line_spacing=1.28, page=None):
+          line_spacing=1.28, page=None, role=None):
     text = str(text or "")
     font = font or rc.theme.font_body
+    if role in dt.TYPO_ROLES:
+        min_size = max(min_size, dt.TYPO_ROLES[role][0])
     fitted, overflow = text_engine.fit_size(text, w * 72, h * 72, size, min_size, line_spacing)
     if overflow:
         text = text_engine.truncate_to_fit(text, w * 72, h * 72, min_size, line_spacing)
