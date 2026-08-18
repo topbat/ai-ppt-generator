@@ -34,7 +34,7 @@ def test_premium_mode_places_key_slide_design_after_layout_before_render():
     assert codes.index("LAYOUT") < codes.index("KEY_SLIDE_DESIGN") < codes.index("RENDER")
 
 
-def test_key_slide_placeholder_is_checkpoint_safe_noop():
+def test_premium_pipeline_uses_real_non_resumable_key_slide_stage():
     stage = next(
         stage
         for group in PIPELINES["premium"]
@@ -42,4 +42,5 @@ def test_key_slide_placeholder_is_checkpoint_safe_noop():
         if stage.code == "KEY_SLIDE_DESIGN"
     )
 
-    assert stage.run(object()) == {"selected": [], "applied": [], "fallback": []}
+    assert stage.__class__.__name__ == "KeySlideDesignStage"
+    assert stage.resumable is False

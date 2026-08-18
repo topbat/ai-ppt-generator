@@ -293,6 +293,11 @@ def _render_template_page(rc, prs, sd, data, roles, src_slide, content_area, bla
                 h -= 0.42
             else:
                 rc.note(sd.page, "subtitle_skipped", "副标题过长已省略（避免截断残句）")
+        if (sd.visual_plan or {}).get("scene_spec"):
+            from app.ppt.scene_renderer import paint_scene
+
+            if paint_scene(rc, slide, data):
+                return
         if sd.layout_recipe:
             from app.ppt.recipe_renderer import paint_recipe
 
@@ -340,7 +345,11 @@ def _render_with_system(rc, spec, out_path: str) -> list[int]:
         painter = LAYOUT_PAINTERS.get(sd.type, paint_title_content)
         try:
             painted = False
-            if sd.layout_recipe:
+            if (sd.visual_plan or {}).get("scene_spec"):
+                from app.ppt.scene_renderer import paint_scene_page
+
+                painted = paint_scene_page(rc, slide, data)
+            if not painted and sd.layout_recipe:
                 from app.ppt.recipe_renderer import paint_recipe_page
 
                 painted = paint_recipe_page(rc, slide, data)
