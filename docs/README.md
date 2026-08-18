@@ -1,48 +1,64 @@
-# AI PPT 自动生成系统 — 文档索引
+# AI PPT 自动生成系统 — 文档中心
 
-> 产品定位：Template-driven AI Presentation Generator（模板驱动的 AI PPT 生成引擎）
-> 版本：V1.1（2026-08-17，按当前代码同步）
+> 当前文档版本：V1.2（2026-08-18）
+> 产品定位：企业模板优先、双生成引擎、可编辑交付的 AI 演示文稿平台
 
-## 文档清单
+## 现行文档
 
-| 文档 | 内容 |
+| 文档 | 说明 |
 |---|---|
-| [01-PRD.md](01-PRD.md) | 产品需求文档：背景与定位、5 项核心输入、三模式产品定义、事实保障、兜底要求、失败与重试、存储与预览、耗时记录、非功能需求、验收标准、里程碑 |
-| [02-UI-DESIGN.md](02-UI-DESIGN.md) | UI 信息架构与当前页面：任务列表、三步生成、任务详情、模板库、PPT 美化、ppt-master 生成、状态映射与 SSE 约定 |
-| [03-IMPLEMENTATION.md](03-IMPLEMENTATION.md) | 整体实现方案与实现边界：容器化架构、三模式流水线、状态/错误码、当前 15 张 ORM 表、API、对象存储、QA/美化、Compose 运行方式与未落地的运维能力 |
-| [04-VISUAL-OPTIMIZATION.md](04-VISUAL-OPTIMIZATION.md) | 视觉优化（第二阶段，已落地）：Design Token 体系、12 列网格与锚线、九维视觉评分模型、Fix Ops 受控 DSL、BEAUTIFY 优化闭环、Vision Critic、历史任务一键美化、实现状态与验收记录 |
-| [05-PPTMASTER-INTEGRATION.md](05-PPTMASTER-INTEGRATION.md) | ppt-master 独立集成：API/Worker/队列/Agent/产物链路、容器资源、运行配置与真实 Agent 验收 |
+| [01-PRD.md](01-PRD.md) | 产品定位、用户场景、双生成入口、三模式、模型选择、任务和验收边界 |
+| [02-UI-DESIGN.md](02-UI-DESIGN.md) | 页面路由、交互流程、模型选择、任务状态、阶段提示、预览和下载 |
+| [03-IMPLEMENTATION.md](03-IMPLEMENTATION.md) | 系统架构、主流水线、数据模型、API、对象存储、容器与实现边界 |
+| [04-VISUAL-OPTIMIZATION.md](04-VISUAL-OPTIMIZATION.md) | 整册艺术指导、视觉分镜、布局语法、重复度控制、四边距检查、评分与美化闭环 |
+| [05-PPTMASTER-INTEGRATION.md](05-PPTMASTER-INTEGRATION.md) | PPT-MASTER Agent/SVG 流水线、模型目录、模板风格语义、三并发排队与产物恢复 |
+| [06-DEVELOPMENT-DEPLOYMENT.md](06-DEVELOPMENT-DEPLOYMENT.md) | 环境变量、模型 Key 来源、本地开发、Docker/生产部署、测试和运维 |
 
-## 一句话摘要
+`plans/` 保存已经执行过的设计与实施计划，用于追踪决策来源，不代表当前配置；发生冲突时，以上现行文档和代码优先。
 
-用户提供 **PPT 模板 + 主说明文档(PDF/DOCX) + 页数 + 模式(极速/标准/专业，默认极速) + 内容密度** 5 项输入；系统通过 **解析 → 知识建模 → 大纲 → 页面规划 → 并行内容生成 → 模板匹配/模板页克隆 → python-pptx 渲染 → 质检修复 → MinIO/OSS 归档** 的异步流水线，在分钟级产出可编辑、可预览、可追溯、可重试的 PPTX。
+## 当前能力总览
 
-## 核心设计决策（速览）
+系统提供两条互补的生成链路：
 
-1. **AI 与渲染解耦**：AI 只产出受控的 Presentation JSON 中间层，python-pptx 做确定性渲染；
-2. **三模式 = 三条 DAG**：极速（章节批量+规则QA）、标准（页级并行+视觉闭环+度量QA+修复）、专业（事实冲突交互+可选 Vision QA+视觉闭环+修复）；专业模式的 `DocChunk`/embedding 目前是模型骨架，尚未执行完整向量 RAG；
-3. **Guard 层独立**：Input/Template/Fact/Outline/Page/Content/Layout/Render 八类校验集中管理，配 Fallback Matrix，单点异常不失败整体；
-4. **异步 Job + 阶段 checkpoint**：秒回 job_id，SSE 推送阶段与页级进度（边生成边看），失败断点重试；
-5. **全链路计时**：Job 级 + Stage 级（含并行分支）+ LLM 调用级三层耗时全落库；
-6. **国内模型优先**：Qwen + DeepSeek 双 Provider，网关级路由/熔断/自动切换；
-7. **全容器化**：默认 7 个服务（frontend / api / worker / postgres / redis / minio / minio-init），启用 `pptmaster` profile 后增加独立 `pptmaster-worker`；`minio-init` 是一次性初始化容器，LibreOffice 内置在 Worker 镜像中；
-8. **视觉优化第二阶段**（[04 文档](04-VISUAL-OPTIMIZATION.md)）：九维视觉评分规则引擎 + BEAUTIFY 确定性美化闭环 + 一键美化，质量分管"对不对"、视觉分管"好不好看"。
+| 入口 | 实现方式 | 优势 | 典型场景 |
+|---|---|---|---|
+| 新建生成 | LLM 输出受控 Presentation JSON，python-pptx 确定性渲染企业模板 | 稳定、可追溯、版式和事实可控、原生元素可编辑 | 企业周报、项目汇报、批量标准化生产 |
+| PPT-MASTER 生成 | Claude Code/Codex 驱动 ppt-master skill，逐页生成 SVG 后编译 DrawingML PPTX | 视觉自由度高、路线和画布丰富、关键页表现力强 | 高质量提案、自由设计、模板填充、美化和图片还原 |
 
-## 当前实现边界
+此外提供模板库、AI 模板生成、任务历史/版本、在线预览、PPTX/PDF/报告下载、失败重试、历史任务一键美化和独立 PPTX 九维视觉美化。
 
-- 当前 ORM 实际定义 15 张表，数据库使用 `create_all` 与少量幂等增量列，不是文档最初规划的 16 张 DDL/Alembic 方案；
-- 模板页 XML 克隆已经实现，README 中“V2 才支持模板 XML 克隆”的旧描述已废弃；
-- 扫描件 OCR、真正的向量 RAG、Prometheus/Grafana、自动清理、用户并发配额、认证/多租户尚未实现；
-- ppt-master 已采用 Worker 执行域：API 接受任务并按凭据展示能力，`pptmaster-worker` 领取任务后重新探测 CLI/仓库并解析 `auto`；真实 Claude Code + `qwen3.7-plus` 的 Compose 端到端链路已验证。
+## 模型目录
 
-## 本地容器入口
+- 新建生成：`deepseek-v4-pro`、`kimi-k3`、`qwen3.7-plus`、`qwen3.8-max`；默认 `qwen3.7-plus`；一键美化子任务默认 `kimi-k3`。
+- PPT-MASTER：`deepseek-v4-pro`、`qwen3.7-plus`、`qwen3.8-max`；默认 `qwen3.7-plus`。
+- 所有选项来自 `.env`，前端展示并提交实际 model-id；任务列表持久化展示提交时的 model-id。
+
+## 关键实现事实
+
+1. 主链路三模式是三条不同 DAG：极速、标准、专业；
+2. 企业模板生成已加入整册艺术指导、视觉分镜、布局语法、重复度控制和少量关键页自由设计；
+3. 所有内容容器执行四边距安全区、字体、层级、密度和连续性检查；
+4. PPT-MASTER 的“由上传模板决定”是可选风格，不是锁定控件；用户始终可以改选视觉风格；
+5. PPT-MASTER 单部署最多三个任务同时运行，更多任务保持 `pending / 排队中`；
+6. PPT-MASTER 会保存阶段历史，进行中状态可查看完整阶段链；
+7. Agent 非零退出或超时时，只要工作区已有完整可打开的 PPTX，Worker 会恢复产物并按成功交付；用户主动取消仍保持 `canceled`；
+8. 默认 Compose 有七个服务项（其中 `minio-init` 为一次性容器），启用 `pptmaster` profile 后增加独立 Worker。
+
+## 截图
+
+| 页面 | 说明 |
+|---|---|
+| ![新建生成](images/new-generation.png) | 企业模板选择、预览与三步生成入口 |
+| ![PPT-MASTER](images/pptmaster-generation.png) | 多输入、多路线、模型、画布与视觉风格配置 |
+| ![PPT 美化](images/ppt-beautify.png) | 上传 PPTX、九维评分、确定性修复与历史下载 |
+| ![模板库](images/template-library.png) | 个人模板、AI 模板、预览、下载和批量管理 |
+
+## 快速入口
 
 ```powershell
-Set-Location deploy
+Set-Location .\deploy
 if (-not (Test-Path .env)) { Copy-Item .env.example .env }
-docker compose up -d --build
 docker compose --profile pptmaster up -d --build
-docker compose --profile pptmaster ps -a
 ```
 
-主链路入口为 `http://localhost:8081`，Swagger 为 `http://localhost:8000/docs`，MinIO 控制台为 `http://localhost:9001`。完整配置项、健康检查和真实 Agent 前提见 [README.md](../README.md) 与 [05-PPTMASTER-INTEGRATION.md](05-PPTMASTER-INTEGRATION.md)。
+Web：<http://localhost:8081>；Swagger：<http://localhost:8000/docs>。完整配置和上线注意事项见 [开发、配置与部署](06-DEVELOPMENT-DEPLOYMENT.md)。

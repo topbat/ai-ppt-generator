@@ -1,7 +1,7 @@
 # AI PPT 自动生成系统 — 整体实现方案
 
-> 版本：V1.1
-> 日期：2026-08-17（按当前代码同步）
+> 版本：V1.2
+> 日期：2026-08-18（按当前代码同步）
 > 内容：总体架构 / 模块设计 / 三模式流水线 / 流程设计 / 状态设计 / 当前 ORM 表 / API / 存储与预览 / 容器化部署 / 已知边界
 > 关联文档：[01-PRD.md](01-PRD.md)、[02-UI-DESIGN.md](02-UI-DESIGN.md)
 
@@ -38,9 +38,9 @@
           │  │  Parser / Knowledge   ││ HTTPS  │ LLM Gateway   │
           │  │  Outline / Planner    │├───────▶│  Qwen(百炼)   │
           │  │  Content / Matcher    ││        │  DeepSeek     │
-          │  │  Renderer / Guards    ││        │  (进程内模块)  │
-          │  │  QA / Repair          ││        └──────────────┘
-          │  └───────────┬───────────┘│
+          │  │  Renderer / Guards    ││        │  Kimi         │
+          │  │  QA / Repair          ││        │  (进程内模块)  │
+          │  └───────────┬───────────┘│        └──────────────┘
           └──────────────┼────────────┘
              ┌───────────┼───────────────┐
              ▼           ▼               ▼
@@ -54,7 +54,7 @@
 要点：
 
 - **API 与 Worker 分离**：API 只做轻量请求（<500ms），所有生成工作在 Worker 内异步执行；
-- **LLM Gateway 是进程内模块**（非独立服务），统一封装 Qwen/DeepSeek 的路由、重试、熔断、计量；V2 可拆独立服务；
+- **LLM Gateway 是进程内模块**（非独立服务），统一封装 Qwen/DeepSeek/Kimi 的路由、重试、熔断、并发与计量；V2 可拆独立服务；
 - **LibreOffice 内置在 `worker`/`pptmaster-worker` 镜像**，默认由 Worker 启动独立 `soffice` 子进程转换；只有显式配置 `CONVERT_BACKEND=unoserver` 才会访问外部 unoserver，当前 Compose 未定义该服务；
 - 进度通过 Redis Pub/Sub 流转：Worker 发布 → API 订阅 → SSE 推送前端。
 
@@ -71,13 +71,39 @@
 | OCR | 当前未实现；无有效文本时返回 E2003 | OCR 配置字段保留，后续接入 |
 | 图片处理 | Pillow | 裁剪/质量检查/文本测量 |
 | 图表 | python-pptx 原生 Chart；复杂图 matplotlib→PNG 兜底 | 保证可编辑优先 |
-| LLM | Qwen（DashScope OpenAI 兼容口）+ DeepSeek | openai sdk 统一接入 |
+| LLM | Qwen（DashScope）+ DeepSeek + Kimi/Moonshot | openai sdk 统一接入，按 model-id 前缀路由 |
 | Embedding | 当前未生成/检索 embedding；`DocChunk` 为模型骨架 | 后续接入专业模式 RAG |
 | 数据库 | PostgreSQL 16（镜像含 pgvector） | 当前主要存元数据与 JSON，未接完整向量检索 |
 | 对象存储 | MinIO（S3 协议），可切阿里云 OSS | boto3/s3 抽象层 |
 | 文档转换 | Worker 镜像内 LibreOffice + 可选 unoserver | PPTX→PDF；PDF→PNG 用 PyMuPDF |
 | 部署 | Docker Compose（V1）→ K8s（V2） | 全容器化 |
 | 监控 | 结构化日志、任务/阶段/LLM 调用落库 | Prometheus/Grafana 尚未接入 Compose |
+
+### 1.3 双生成执行域
+
+```text
+新建生成
+  React → FastAPI → Celery(generate/convert)
+        → 解析/知识/规划/内容/布局/渲染/美化/QA/发布
+        → Presentation JSON → python-pptx → PPTX/PDF/PNG/报告
+
+PPT-MASTER 生成
+  React → FastAPI → Celery(pptmaster，最多并行 3)
+        → 独立非 root Worker → Claude Code/Codex → ppt-master skill
+        → SVG → DrawingML PPTX → PPTX/PDF/PNG/报告/日志/事件流
+```
+
+两个执行域只共享 PostgreSQL、Redis 和对象存储，不共享流水线状态机。PPT-MASTER 超出三个执行槽的任务保留 `pending`；Worker 领取任务后再探测 Agent 和仓库。Agent 返回非零、超时或被中断时，Service 会先扫描工作区并验证 PPTX，存在可交付产物则恢复上传并按成功结束。
+
+主链路模型目录与 PPT-MASTER 模型目录彼此独立：
+
+| 能力 | 环境目录 | 当前值 | 调用凭据 |
+|---|---|---|---|
+| 新建生成 | `LLM_SELECTABLE_MODELS` | `deepseek-v4-pro,kimi-k3,qwen3.7-plus,qwen3.8-max` | `DEEPSEEK_API_KEY` / `KIMI_API_KEY` / `QWEN_API_KEY` |
+| 历史任务一键美化 | `LLM_BEAUTIFY_MODEL` | `kimi-k3` | 主链路 Gateway |
+| PPT-MASTER | `PPTMASTER_SELECTABLE_MODELS` | `deepseek-v4-pro,qwen3.7-plus,qwen3.8-max` | Claude Code 的 `ANTHROPIC_*` 或 Codex 的 `OPENAI_API_KEY` |
+
+独立 `/beautify` 上传美化 API 不调用 LLM；它执行规则九维评分和确定性几何微调。
 
 ---
 
@@ -547,7 +573,13 @@ Base：`/api/v1`；当前无登录鉴权（CORS 全开放，`user_id` 仅预留�
 |---|---|---|
 | POST | /templates | 上传模板（multipart），返回 template_id，异步解析 |
 | GET | /templates | 模板列表（含解析状态/版式摘要） |
+| GET | /templates/ai-options | AI 模板生成与新建生成的模型目录 |
+| POST | /templates/ai-generate | 按主题与风格生成 AI 模板 |
+| POST | /templates/batch-delete | 批量软删除模板 |
 | GET | /templates/{id} | 模板详情（版式清单/Design Token/缩略图） |
+| GET | /templates/{id}/download | 模板下载 |
+| GET | /templates/{id}/thumbnail | 模板封面图 |
+| GET | /templates/{id}/slides/{n}/image | 模板逐页预览图 |
 | DELETE | /templates/{id} | 删除模板 |
 | POST | /documents | 上传主文档，返回 document_id，异步预解析 |
 | GET | /documents/{id} | 解析摘要（字数/章节/建议页数/是否扫描件） |
@@ -562,6 +594,8 @@ Base：`/api/v1`；当前无登录鉴权（CORS 全开放，`user_id` 仅预留�
 | GET | /jobs/{id}/slides | 页面清单（内容卡片+缩略图 URL+来源） |
 | GET | /jobs/{id}/output | 产物下载地址（指向后端代理 `/download/{kind}`） |
 | GET | /jobs/{id}/pages/{n}/image | 单页大图（后端代理读取 PNG） |
+| GET | /jobs/{id}/pages/{n}/thumb | 单页缩略图 |
+| GET | /jobs/{id}/download/{kind} | PPTX/PDF/报告代理下载 |
 | GET | /jobs/{id}/report | 质检报告 JSON |
 | GET | /jobs/{id}/versions | 版本链（parent/child Job 列表） |
 | POST | /beautify | 独立 PPTX 美化：同步评分、确定性微调并保存结果 |
@@ -1034,9 +1068,11 @@ volumes: {pgdata: {}, redisdata: {}, miniodata: {}, pptmaster-projects: {}}
 # LLM
 QWEN_API_KEY=...            QWEN_BASE_URL=https://dashscope.aliyuncs.com/compatible-mode/v1
 DEEPSEEK_API_KEY=...        DEEPSEEK_BASE_URL=https://api.deepseek.com
+KIMI_API_KEY=...            KIMI_BASE_URL=https://api.moonshot.cn/v1
 LLM_MAX_CONCURRENCY_PER_PROVIDER=8
-LLM_SELECTABLE_MODELS=deepseek-v4-pro,qwen3.7-plus,qwen3.8-max
+LLM_SELECTABLE_MODELS=deepseek-v4-pro,kimi-k3,qwen3.7-plus,qwen3.8-max
 LLM_DEFAULT_SELECTABLE_MODEL=qwen3.7-plus
+LLM_BEAUTIFY_MODEL=kimi-k3
 # 存储
 STORAGE_BACKEND=minio                       # minio | oss
 S3_ENDPOINT=http://minio:9000  S3_BUCKET=ppt-gen  S3_ACCESS_KEY=...  S3_SECRET_KEY=...
@@ -1046,7 +1082,8 @@ JOB_TIMEOUT_FAST=300  JOB_TIMEOUT_STANDARD=900  JOB_TIMEOUT_PREMIUM=1800
 VISION_QA_ENABLED=false  OCR_ENABLED=false
 # ppt-master（百炼 Claude Code 示例）
 PPTMASTER_EXECUTION_SCOPE=worker  PPTMASTER_DEFAULT_AGENT=auto
-PPTMASTER_CLAUDE_MODEL=qwen3.7-plus
+PPTMASTER_SELECTABLE_MODELS=deepseek-v4-pro,qwen3.7-plus,qwen3.8-max
+PPTMASTER_DEFAULT_MODEL=qwen3.7-plus
 PPTMASTER_MAX_CONCURRENT_JOBS=3
 ANTHROPIC_AUTH_TOKEN=...  ANTHROPIC_BASE_URL=https://<WorkspaceId>.cn-beijing.maas.aliyuncs.com/apps/anthropic
 ```

@@ -43,16 +43,21 @@ def test_catalog():
     print("[ok] catalog")
 
 
-def test_template_fill_style_is_locked_by_backend_and_prompt():
+def test_template_fill_template_style_is_inferred_from_uploaded_pptx():
     assert "template" in catalog.VALID["style"]
+    template_style = next(item for item in catalog.STYLES if item["key"] == "template")
+    assert "分析" in template_style["desc"]
+    assert "不可修改" not in template_style["desc"]
     prompt = build_prompt(
         "pm_template",
         {"input_mode": "topic", "topic": "年度复盘", "route": "template_fill", "style": "template"},
         [],
         "projects/pm_template/sources/company.pptx",
     )
-    assert "完全由上传的 PPTX 模板决定" in prompt
-    assert "不得改动模板" in prompt
+    assert "分析上传的 PPTX 模板" in prompt
+    assert "内容定位、页面结构" in prompt
+    assert "归纳并确定" in prompt
+    assert "不得改动模板" not in prompt
 
 
 def test_prompt():
@@ -155,7 +160,7 @@ def test_api_defers_agent_availability_to_worker():
     print("[ok] API defers Agent availability to worker")
 
 
-def test_api_requires_configured_model_and_forces_template_style():
+def test_api_requires_configured_model_and_preserves_template_fill_style():
     from app.api import pptmaster_api
     from app.services import storage as storage_module
     from app import worker as worker_module
@@ -210,7 +215,7 @@ def test_api_requires_configured_model_and_forces_template_style():
         result = asyncio.run(pptmaster_api.create_job(**valid_kwargs))
     assert result["code"] == 0, result
     assert db.job.model == "qwen3.8-max"
-    assert db.job.params["style"] == "template"
+    assert db.job.params["style"] == "swiss-minimal"
 
 
 def test_options_reports_worker_managed_capabilities():

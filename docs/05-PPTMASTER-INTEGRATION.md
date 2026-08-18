@@ -1,9 +1,9 @@
 # AI PPT 生成系统 — ppt-master 集成设计（第三阶段，可选独立能力）
 
-> 版本：V1.0
-> 日期：2026-08-17
+> 版本：V1.2
+> 日期：2026-08-18（按当前实现同步）
 > 定位：把开源 [hugohe3/ppt-master](https://github.com/hugohe3/ppt-master)（v4.8.0，MIT）作为**工具**接入，用 FastAPI 包装成"异步提交 → 轮询状态"的 API 供前端使用；与既有生成流水线（[03 文档](03-IMPLEMENTATION.md)）完全隔离。
-> 关联：[README §ppt-master 生成](../README.md#ppt-master-生成可选独立能力)
+> 关联：[README §启用 PPT-MASTER](../README.md#启用-ppt-master)
 
 ---
 
@@ -48,12 +48,14 @@ ppt-master 不是库，而是运行在 coding agent（Claude Code / Codex / Curs
 | route | generate / template_fill / beautify / enhance / image_to_pptx(仅 codex) / create_template | Generate PPTX / Fill Native PPTX / beautify-pptx profile / Enhance Native PPTX / image-to-pptx profile / Create Template |
 | profile | quick / default | quick-generate profile / 默认 Strategist→Executor（提示词要求自动锁定规格不确认） |
 | canvas | ppt169 ppt43 xiaohongshu moments story wechat banner a4 | `canvas-formats.md` |
-| style | auto + template（模板路线锁定）+ 18 内置 + custom | `references/visual-styles/` |
+| style | auto + template（分析上传模板后推导）+ 18 内置 + custom；所有路线均允许修改 | `references/visual-styles/` |
 | narrative_mode | auto pyramid narrative instructional showcase briefing | `references/modes/` |
 | reading_mode | auto text balanced presentation | 正文字号档 |
 | language / image_source | auto zh en / auto none search ai | — / `image_search.py` `image_gen.py` |
 | 开关 | native_charts speaker_notes narration transitions animations | `--native-charts-and-tables` / notes / `notes_to_audio` / transitions / animations |
 | 执行 | agent(auto claude codex mock) model timeout_minutes | Runner 选择；model 来自环境模型目录 |
+
+当前前端模型目录固定来自 `PPTMASTER_SELECTABLE_MODELS`，只展示 `deepseek-v4-pro`、`qwen3.7-plus`、`qwen3.8-max`，默认 `qwen3.7-plus`。任务创建时必须提交合法 model-id，后端写入 `pptmaster_jobs.model`，列表“模型”列展示该持久化值。
 
 ## 4. 提示词契约（`prompt.py`）
 
@@ -61,6 +63,7 @@ ppt-master 不是库，而是运行在 coding agent（Claude Code / Codex / Curs
 - 显式即遵循：每个用户参数转成一句明确指令（页数"正好 N 页"、风格、叙事、图片策略、导出开关…）；
 - 工作区已 init：明确目录 `projects/<biz>_<canvas>_<YYYYMMDD>/`，禁止再次 init 或另建目录；
 - 交付：PPTX 必须在 `<project>/exports/`；最后一行 `DONE: <path>` 或 `FAILED: <原因>`（Worker 据此判定并提取失败原因）。
+- 模板路线：选择“由上传的 PPTX 模板决定”时，Agent 根据模板内容、结构、字体、色彩与版式语言推导风格；它只是 `style=template` 的选项，前端不会锁定视觉风格，用户始终可改选其他风格。
 
 ## 5. 接口
 
@@ -75,6 +78,18 @@ ppt-master 不是库，而是运行在 coding agent（Claude Code / Codex / Curs
 | GET | /pptmaster/jobs/{id}/download/{kind} | pptx / pptx_native / pptx_narrated / pdf / report / log / stream（后端代理输出） |
 | GET | /pptmaster/jobs/{id}/pages/{n}/image | 逐页预览 png/svg |
 | GET | /pptmaster/jobs/{id}/log | 完整可读日志 |
+
+任务 DTO 还返回去重后的 `stage_history`。前端对进行中状态使用悬浮提示，将已经历阶段按 `准备工作区 --> 启动 Agent --> ...` 完整展示；阶段历史最多保留最近 60 项，不把内部 `_stage_history` 暴露在普通 `params` 中。
+
+### 5.1 完成判定与误失败恢复
+
+完成判定以“是否存在可打开的 PPTX”优先，不只看 Agent 退出码：
+
+1. 先收集 `exports/*.pptx`；只要存在产物，即使 Agent 最终回复异常或返回非零，也上传产物并以 `succeeded` 结束，同时在阶段文案中标注 Agent 异常；
+2. Agent 正常结束但没有导出 PPTX 时，如果 `svg_output/` 已有完整页集，Worker 会执行 SVG finalize、质量检查和 `svg_to_pptx.py` 转换；
+3. 恢复产物必须能被 `python-pptx` 打开，并与期望页数一致；失败则保留为 `failed`，审计原因写入 `run.recovery`；
+4. 对历史失败记录，`recover_failed_pptmaster_job()` 只处理 Agent 当时正常退出的任务，重新收集已有导出或从完整 SVG 恢复，避免把不完整页集误判为成功；
+5. 美化路线的期望页数从上传 PPTX 读取，其他路线优先使用显式页数或设计规格。
 
 ## 6. 部署与安全
 
@@ -92,9 +107,9 @@ ppt-master 不是库，而是运行在 coding agent（Claude Code / Codex / Curs
 ```powershell
 Set-Location .\deploy
 if (-not (Test-Path .env)) { Copy-Item .env.example .env }
-# 编辑 .env：主链路配置 QWEN/DEEPSEEK；真实 ppt-master 配置 Agent Key、模型与兼容端点
-# 模型目录（实际 model_id）：LLM_SELECTABLE_MODELS=deepseek-v4-pro,qwen3.7-plus,qwen3.8-max
-# 默认模型：LLM_DEFAULT_SELECTABLE_MODEL=qwen3.7-plus
+# 编辑 .env：主链路配置 QWEN/DEEPSEEK/KIMI；真实 ppt-master 配置 Agent Key、模型与兼容端点
+# PPT-MASTER 模型目录：PPTMASTER_SELECTABLE_MODELS=deepseek-v4-pro,qwen3.7-plus,qwen3.8-max
+# PPT-MASTER 默认模型：PPTMASTER_DEFAULT_MODEL=qwen3.7-plus
 # 并发上限：PPTMASTER_MAX_CONCURRENT_JOBS=3
 # 百炼示例：PPTMASTER_CLAUDE_MODEL=qwen3.7-plus
 #           ANTHROPIC_AUTH_TOKEN=<API Key>
@@ -119,6 +134,7 @@ docker compose exec -T pptmaster-worker sh -lc 'id && claude --version && codex 
 
 - 进度是启发式（事件 + 文件），不是精确百分比；
 - 同一任务重试未实现（可重新提交，Agent 会话本身不可续跑，与 ppt-master Quick 契约一致）；
+- URL 在 API 层只做 `http/https` 格式校验，网页抓取由 Agent 调用 ppt-master 转换器；应用层固定最多三次抓取的护栏尚未独立实现；
 - 图片搜索/AI 生图、TTS 旁白依赖 ppt-master 侧的 Key 配置，未配置时 Agent 会按提示词退化并在最终回复说明；
 - `ANTHROPIC_BASE_URL` 必须是绝对 `http://` 或 `https://` URL；百炼 Workspace 端点必须包含 `/apps/anthropic`，只填主机名或 OpenAI 兼容路径会得到 404；
 - Worker 执行域下 API 只能从凭据判断“可能可用”，最终 CLI/仓库/模型可用性以 Worker 运行时二次校验及 Agent 日志为准；

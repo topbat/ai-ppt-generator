@@ -185,8 +185,6 @@ async def create_job(
     db: Session = Depends(get_db),
 ):
     s = get_settings()
-    if route == "template_fill":
-        style = "template"
     # ---- 枚举校验 ----
     for k, v in (("input_mode", input_mode), ("route", route), ("profile", profile), ("canvas", canvas),
                  ("style", style), ("narrative_mode", narrative_mode), ("reading_mode", reading_mode),

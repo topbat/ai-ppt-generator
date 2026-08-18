@@ -1,280 +1,289 @@
-# AI PPT 自动生成系统（Template-driven AI Presentation Generator）
+<p align="center">
+  <img src="docs/images/logo.png" width="168" alt="AI PPT Generator Logo">
+</p>
 
-输入 **PPT 模板 + 主说明文档(PDF/DOCX) + 页数 + 模式 + 内容密度** 5 项信息，分钟级产出可编辑、可预览、可追溯、可重试的 PPTX。全容器化，一键部署。
+<h1 align="center">AI PPT 自动生成系统</h1>
 
-内置**视觉优化**能力（第二阶段）：九维视觉评分（布局/对齐/字体/间距/色彩/层级/密度/图片/一致性）+ BEAUTIFY 确定性美化闭环 + 历史任务"一键美化"，质量分与视觉分并列展示。
+<p align="center">
+  企业模板优先、双生成引擎、可编辑交付的开源 AI 演示文稿平台
+</p>
 
-另提供 **ppt-master 生成**（第三阶段，可选）：把开源 [hugohe3/ppt-master](https://github.com/hugohe3/ppt-master) 作为工具，用 FastAPI 包装成"异步提交 → 轮询状态"的 API，后端以子进程驱动 Claude Code / Codex CLI 在 ppt-master 工作区内无人值守跑完整工作流，产出原生可编辑 PPTX 并上传对象存储；前端独立菜单「ppt-master生成」。与既有生成流水线完全隔离，见 [ppt-master 生成](#ppt-master-生成可选独立能力)。
+<p align="center">
+  <a href="LICENSE">MIT License</a> ·
+  <a href="docs/README.md">完整文档</a> ·
+  <a href="docs/06-DEVELOPMENT-DEPLOYMENT.md">开发与部署</a> ·
+  <a href="http://localhost:8000/docs">Swagger</a>
+</p>
 
-设计文档见 [docs/](docs/)：[PRD](docs/01-PRD.md) · [UI 设计](docs/02-UI-DESIGN.md) · [实现方案](docs/03-IMPLEMENTATION.md) · [视觉优化](docs/04-VISUAL-OPTIMIZATION.md) · [ppt-master 集成](docs/05-PPTMASTER-INTEGRATION.md)
+**项目关键词：** AI PPT、PPT 生成、PowerPoint、企业模板、PPTX、演示文稿、智能排版、视觉分镜、布局语法、Claude Code、ppt-master、FastAPI、React、Celery、私有化部署。
 
-> **实现状态说明（2026-08-17）**：主生成流水线、模板页 XML 克隆、九维视觉评分、任务一键美化、独立 PPTX 美化 API 与 ppt-master 的 API/Worker/前端代码均已存在；Compose 分离容器中的真实 Claude Code + `qwen3.7-plus` 链路已完成端到端验证。当前 ORM 实际定义 15 张表，数据库仍使用 `create_all + ADD COLUMN IF NOT EXISTS`，未接 Alembic。OCR、真正的 RAG 检索、Prometheus/Grafana、产物自动清理、用户并发配额和认证/多租户仍未落地；具体边界见本文末尾。
+这个项目不是只把文字塞进固定模板。它提供两条可以按场景选择的生成链路：一条强调企业模板、事实、版式和稳定性的“新建生成”；一条强调自由设计、丰富路线和关键页表现力的“PPT-MASTER 生成”。最终以可编辑 PPTX 为主要交付，并提供预览、报告、版本、重试和美化能力。
 
-## 快速开始
+## 功能概览
 
-前置：Docker 20+ / Docker Compose v2。
-
-```bash
-cd deploy
-cp .env.example .env
-# 编辑 .env：至少填入 QWEN_API_KEY、DEEPSEEK_API_KEY 或 KIMI_API_KEY
-# （没有 Key 想先跑通链路：把 LLM_MOCK=true）
-# 部署到服务器时：S3_PUBLIC_ENDPOINT 改为 http://<服务器IP>:9000
-
-docker compose up -d --build
-```
-
-启动后：
-
-| 入口 | 地址 |
+| 能力 | 当前实现 |
 |---|---|
-| Web 界面 | http://localhost:8081（compose 端口映射 8081→80） |
-| API（Swagger） | http://localhost:8000/docs |
-| 就绪检查 | http://localhost:8000/readyz |
-| MinIO 控制台 | http://localhost:9001（pptadmin / pptadmin123） |
+| 新建生成 | 选择/上传企业 PPTX 模板，上传 PDF/DOCX，配置 model-id、页数、极速/标准/专业模式和内容密度 |
+| 企业视觉构图 | 整册艺术指导、逐页视觉分镜、14 套布局语法、重复度控制、少量关键页自由设计 |
+| 布局安全 | 所有内容容器检查上/右/下/左四个边距、Logo/页脚保护区、字体、层级、密度和相邻页连续性 |
+| 模板库 | 上传、解析、AI 生成、分类、搜索、封面/逐页预览、下载、删除和批量管理 |
+| 三种主模式 | 极速：章节批量；标准：页级并行 + 视觉闭环；专业：事实注册/冲突处理 + 关键页 Agent + 可选 Vision QA |
+| PPT-MASTER | 文件/主题/文本/URL 输入；自由生成、模板填充、美化、增强、图片还原、创建模板等路线 |
+| 模型选择 | 新建生成 4 个 model-id；PPT-MASTER 3 个 model-id；选项由 `.env` 下发并写入任务记录 |
+| 异步任务 | Celery 队列、阶段 checkpoint、SSE/轮询进度、取消、断点重试、重新生成和版本链 |
+| PPT-MASTER 队列 | 单部署最多 3 个 Agent 并行，超额任务保持“排队中”；列表展示模型和完整阶段历史 |
+| 产物恢复 | Agent 非零退出/超时但已有完整 PPTX 时仍按成功交付；正常结束且 SVG 完整时可恢复编译 PPTX；主动取消保持 canceled |
+| 在线预览 | LibreOffice 把 PPTX 转为 PDF/PNG，支持逐页预览、PPTX/PDF/质检报告下载 |
+| PPT 美化 | 独立上传 PPTX，九维视觉评分、锚线/8pt 网格吸附、正文颜色修复，不变差才保存 |
+| 存储 | 默认 MinIO，可通过 S3 兼容配置切换 OSS；下载由 API 代理，适合内网部署 |
 
-首次启动会自动：建表 → 创建存储桶 `ppt-gen` → 注册"系统默认模板"。
+## 两种生成入口怎么选
 
-使用流程：**模板库上传公司模板（可选）→ 新建生成 → 上传 PDF/DOCX → 选模型/页数/模式/密度 → 开始生成 → 实时进度（边生成边看）→ 在线预览 / 下载 PPTX**。
+| | 新建生成 | PPT-MASTER 生成 |
+|---|---|---|
+| 实现 | LLM → 受控 Presentation JSON → python-pptx 确定性渲染 | Claude Code/Codex → ppt-master skill → SVG → DrawingML PPTX |
+| 优势 | 稳定、速度可预测、事实/页数/模板/坐标可控 | 视觉自由度更高、输入和画布丰富、关键页表现强 |
+| 取舍 | 构图受模板空间和布局语法约束 | 耗时与成本更高，Agent 进度为启发式 |
+| 推荐 | 企业周报、经营分析、标准化批量生产、严格公司模板 | 提案、发布会、自由设计、模板填充、美化、图片还原 |
 
-## 本地容器运行
+“新建生成”已经吸收了 PPT-MASTER 的艺术指导、视觉分镜和自由设计思路，但把它们约束在模板 Token、空间契约和冻结内容内，因此更适合“企业模板下减少重复感”。
 
-以下命令以 Windows PowerShell 为例。首次运行先准备配置：
+## 界面截图
 
-```powershell
-Set-Location deploy
-if (-not (Test-Path .env)) { Copy-Item .env.example .env }
-```
+### 新建生成
 
-至少检查 `deploy/.env` 中的数据库、Redis、MinIO 与 LLM 配置。没有 Qwen/DeepSeek Key 时可先设置 `LLM_MOCK=true` 验证主链路。
+三步完成企业模板选择、材料上传和模型/页数/模式/密度配置。模板可查看封面和逐页版式。
 
-### 只启动主生成链路
+![新建生成：企业模板选择](docs/images/new-generation.png)
 
-```powershell
-docker compose up -d --build
-docker compose ps -a
-```
+### PPT-MASTER 生成
 
-启动后共创建 7 个容器：`frontend`、`api`、`worker`、`postgres`、`redis`、`minio`、`minio-init`。其中 `minio-init` 创建存储桶后以 `Exited (0)` 正常退出，其余 6 个常驻运行。LibreOffice 已内置在 `worker` 镜像中，没有独立 `soffice` 容器。
+支持多种输入方式、生成路线、模型、画布、视觉风格、叙事和增强选项。“由上传的 PPTX 模板决定”是可选风格，用户始终可以修改。
 
-### 连同 ppt-master 一起启动
+![PPT-MASTER 生成配置](docs/images/pptmaster-generation.png)
 
-先在 `deploy/.env` 选择执行 Agent：
+### 任务列表
+
+集中查看状态、模式、页数、质量分、耗时和缩略图，并直接预览、下载、重新生成或进入详情。
+
+![生成任务列表](docs/images/task-list.png)
+
+### 模板库
+
+统一管理个人模板和 AI 模板，支持搜索、分类、预览、下载与批量操作。
+
+![模板库](docs/images/template-library.png)
+
+### PPT 专业级视觉美化
+
+上传现有 PPTX 后执行九维评分和确定性微调；只有复评不下降才交付美化版。
+
+![PPT 专业级视觉美化](docs/images/ppt-beautify.png)
+
+> 截图来自本地实际运行系统，不是设计稿。任务和模板数据会随部署实例变化。
+
+## 模型与 Key
+
+### 新建生成
+
+前端展示 `LLM_SELECTABLE_MODELS` 中的实际 model-id：
 
 ```dotenv
-# 真实 Claude Code + 阿里云百炼（推荐示例）
 LLM_SELECTABLE_MODELS=deepseek-v4-pro,kimi-k3,qwen3.7-plus,qwen3.8-max
 LLM_DEFAULT_SELECTABLE_MODEL=qwen3.7-plus
 LLM_BEAUTIFY_MODEL=kimi-k3
-PPTMASTER_SELECTABLE_MODELS=deepseek-v4-pro,qwen3.7-plus,qwen3.8-max
-PPTMASTER_DEFAULT_MODEL=qwen3.7-plus
-PPTMASTER_DEFAULT_AGENT=auto
-PPTMASTER_CLAUDE_MODEL=qwen3.7-plus
-PPTMASTER_MAX_CONCURRENT_JOBS=3
-ANTHROPIC_AUTH_TOKEN=<百炼 API Key>
-ANTHROPIC_BASE_URL=https://<WorkspaceId>.cn-beijing.maas.aliyuncs.com/apps/anthropic
-PPTMASTER_CLAUDE_MAX_BUDGET_USD=12
-
-# 没有 Agent 凭据时，仅验证异步/存储/预览链路
-# PPTMASTER_DEFAULT_AGENT=mock
 ```
 
-百炼地址必须包含 `/apps/anthropic`，且不要再追加 `/v1`；API Key 与地域/Workspace 必须匹配。也可使用 `ANTHROPIC_API_KEY`，完整接入说明见[阿里云 Claude Code 文档](https://help.aliyun.com/zh/model-studio/claude-code)。Codex 路线则配置 `OPENAI_API_KEY`、`PPTMASTER_CODEX_MODEL` 和兼容 Responses API 的 Provider。
+| model-id | Key 来源 | 默认 Base URL 变量 |
+|---|---|---|
+| `deepseek-v4-pro` | `DEEPSEEK_API_KEY` | `DEEPSEEK_BASE_URL` |
+| `kimi-k3` | `KIMI_API_KEY` | `KIMI_BASE_URL` |
+| `qwen3.7-plus` / `qwen3.8-max` | `QWEN_API_KEY` | `QWEN_BASE_URL` |
 
-然后启动 `pptmaster` profile：
+主链路 Gateway 按 model-id 前缀选择 Provider，并负责并发、超时、重试和备用路由。成功任务的“一键美化”子任务默认使用 `kimi-k3`。独立 `/beautify` 上传美化页是规则引擎，不调用模型。
+
+### PPT-MASTER
+
+PPT-MASTER 使用独立模型目录：
+
+```dotenv
+PPTMASTER_SELECTABLE_MODELS=deepseek-v4-pro,qwen3.7-plus,qwen3.8-max
+PPTMASTER_DEFAULT_MODEL=qwen3.7-plus
+PPTMASTER_MAX_CONCURRENT_JOBS=3
+```
+
+选择的 model-id 会传给 Claude Code/Codex CLI，并存入任务表。它不会直接使用主链路的 `QWEN_API_KEY` 或 `DEEPSEEK_API_KEY`。Claude Code 路线从 `ANTHROPIC_API_KEY`，或 `ANTHROPIC_AUTH_TOKEN` + `ANTHROPIC_BASE_URL` 取凭据；Codex 路线使用 `OPENAI_API_KEY`。
+
+## 快速开始
+
+需要 Docker Desktop / Docker Engine 与 Compose v2。
+
+```powershell
+git clone https://github.com/topbat/ai-ppt-generator.git
+Set-Location .\ai-ppt-generator\deploy
+Copy-Item .env.example .env
+# 编辑 .env：至少配置一个主链路模型 Key
+docker compose up -d --build
+```
+
+访问：
+
+- Web：<http://localhost:8081>
+- Swagger：<http://localhost:8000/docs>
+- MinIO Console：<http://localhost:9001>
+
+如果暂时没有模型 Key，可在 `.env` 设置 `LLM_MOCK=true` 验证上传、队列、渲染、存储和预览链路。
+
+### 启用 PPT-MASTER
+
+在 `deploy/.env` 配置 Agent 凭据后执行：
 
 ```powershell
 docker compose --profile pptmaster up -d --build
 docker compose --profile pptmaster ps -a
-docker compose logs -f pptmaster-worker
 ```
 
-此时共创建 8 个容器：
+阿里云百炼 Claude Code 兼容端点示例：
 
-| 容器/服务 | 运行方式 | 职责 |
-|---|---|---|
-| `frontend` | 常驻 | Nginx 托管 React 页面并反向代理 API |
-| `api` | 常驻、健康检查 | FastAPI：上传、任务、查询、下载；ppt-master 采用 Worker 执行域 |
-| `worker` | 常驻 | 主生成链路的 `generate,convert` Celery 队列 |
-| `pptmaster-worker` | 常驻、profile `pptmaster` | 独立消费 `pptmaster` 队列；内置非 root 用户、Claude/Codex、ppt-master v4.8.0、LibreOffice |
-| `postgres` | 常驻、健康检查 | 任务、模板、事件与统计元数据 |
-| `redis` | 常驻、健康检查 | Celery broker/result backend 与进度消息 |
-| `minio` | 常驻、健康检查 | 源材料、PPTX、PDF、预览、报告、日志对象存储 |
-| `minio-init` | 一次性 | 创建 `ppt-gen` 存储桶，成功后 `Exited (0)` |
+```dotenv
+PPTMASTER_DEFAULT_AGENT=auto
+ANTHROPIC_AUTH_TOKEN=<在本地填写，不要提交>
+ANTHROPIC_BASE_URL=https://<WorkspaceId>.cn-beijing.maas.aliyuncs.com/apps/anthropic
+```
 
-API 在 `PPTMASTER_EXECUTION_SCOPE=worker` 下只根据凭据展示能力并接受 `auto|claude|codex|mock`；真正的 CLI、仓库和 Agent 可用性由 `pptmaster-worker` 领取任务后重新探测并回填实际 Agent。因而 `/options` 中 API 本地 `repo.ready=false` 与 `repo.delegated=true` 同时出现是正常状态，不会再把真实任务错误降级为 Mock。
+`ANTHROPIC_BASE_URL` 必须是绝对 URL；百炼 Workspace 地址以 `/apps/anthropic` 结尾，不要追加 `/v1`。
 
-### 启动后检查
+## 架构
+
+```text
+                          ┌─────────────────────┐
+                          │ React + Nginx       │ :8081
+                          └──────────┬──────────┘
+                                     │ REST / SSE
+                          ┌──────────▼──────────┐
+                          │ FastAPI             │ :8000
+                          └───┬────────┬────────┘
+                              │        │
+                    ┌─────────▼─┐  ┌──▼──────────┐
+                    │ Redis      │  │ PostgreSQL  │
+                    └─────┬──────┘  └─────────────┘
+                          │ Celery
+            ┌─────────────┴────────────────┐
+            ▼                              ▼
+┌─────────────────────────┐   ┌────────────────────────────┐
+│ 主 Worker               │   │ PPT-MASTER Worker（可选） │
+│ JSON → python-pptx      │   │ Agent → SVG → DrawingML   │
+│ generate / convert      │   │ pptmaster，最多并发 3     │
+└────────────┬────────────┘   └─────────────┬──────────────┘
+             └──────────────┬───────────────┘
+                            ▼
+                    ┌──────────────┐
+                    │ MinIO / OSS  │
+                    └──────────────┘
+```
+
+默认 Compose 包含 `frontend`、`api`、`worker`、`postgres`、`redis`、`minio`、`minio-init`；启用 `pptmaster` profile 后增加独立 `pptmaster-worker`。`minio-init` 创建桶后显示 `Exited (0)` 是正常状态。
+
+## 本地开发
+
+### 后端
 
 ```powershell
-Invoke-RestMethod http://localhost:8000/healthz
-Invoke-RestMethod http://localhost:8000/readyz
-Invoke-RestMethod http://localhost:8000/api/v1/pptmaster/options
-docker compose exec -T pptmaster-worker sh -lc 'id && claude --version && codex --version && soffice --version'
-docker compose exec -T pptmaster-worker test -f /opt/ppt-master/skills/ppt-master/SKILL.md
-docker compose --profile pptmaster logs --tail 100 api worker pptmaster-worker
+Set-Location .\deploy
+docker compose up -d postgres redis minio minio-init
+
+Set-Location ..\backend
+Copy-Item .env.example .env
+python -m venv .venv
+.\.venv\Scripts\Activate.ps1
+python -m pip install -r requirements.txt
+uvicorn app.main:app --reload --host 0.0.0.0 --port 8000
 ```
 
-本机入口：Web `http://localhost:8081`、Swagger `http://localhost:8000/docs`、MinIO 控制台 `http://localhost:9001`。部署到其他机器时，如启用预签名或需要浏览器直连对象存储，再把 `S3_PUBLIC_ENDPOINT` 改成可访问的服务器地址；当前默认下载走 API 后端代理。
+另开终端启动 Worker：
 
-## 三种模式
+```powershell
+Set-Location .\backend
+.\.venv\Scripts\Activate.ps1
+celery -A app.worker worker -Q generate,convert --loglevel INFO --pool=solo
+```
 
-| | ⚡ 极速（默认） | 🚀 标准 | 💎 专业 |
-|---|---|---|---|
-| 定位 | 内部草稿、快速汇报 | 日常正式汇报 | 对外方案、领导汇报 |
-| 内容生成 | 章节批量+并行（4~5 次 LLM/10页） | 页级并行 | 页级并行+事实提示注入 |
-| 视觉构图 | 原有确定性版式，调用量不变 | 整册艺术指导 + 视觉分镜 + 布局语法 + 重复度控制 | 同标准，并将约 18% 关键页交给受约束自由设计 Agent（最多5页） |
-| 视觉优化 | Token 化渲染+一次性出分 | BEAUTIFY 规则闭环 ≤2 轮 | BEAUTIFY 闭环 + Vision Critic(可选) |
-| 质检 | 规则 QA | 规则+度量 QA + 1 轮修复 | +事实冲突交互 + Vision QA(可选) + ≤3 轮修复 |
-| 预览 | PPTX 秒交付，PDF/PNG 异步补齐 | 主链路内完成 | 主链路内完成 + 质检报告 |
-| 10 页目标 | 20~40s | 40~90s | 1~3min |
+### 前端
 
-成功页可对历史任务**一键美化**（`POST /jobs/{id}/beautify`）：以原任务为父创建新版本，复用全部内容成果，只重跑 渲染→视觉优化→转换→质检→归档，秒级完成。
+```powershell
+Set-Location .\frontend
+npm ci
+npm run dev -- --host 0.0.0.0 --port 5800
+```
 
-### 企业模板视觉构图升级
+开发服务器通过 Vite 把 `/api` 代理到 `http://localhost:8000`。详细环境变量、Linux/生产注意事项和运维命令见 [开发、配置与部署](docs/06-DEVELOPMENT-DEPLOYMENT.md)。
 
-标准/专业模式在 `PLAN` 与 `CONTENT` 之间增加整册艺术指导和逐页视觉分镜，在 `MATCH` 与 `LAYOUT` 之间增加确定性构图层：
+## 测试
 
-- 模板解析生成 `space_contract`，正文只能进入安全区，logo、页脚等品牌区域作为保护区；
-- 14 套布局语法覆盖单焦点、分栏、卡片、流程、结构、数据和编辑式构图；同一任务用 SHA-256 稳定选型；
-- 所有内容容器逐边检查上/右/下/左边距，正文语义字号不低于 16pt；
-- 相邻构图指纹不得重复，单一布局家族在有可选方案时不超过正文页的 30%，连续三页不保持同一焦点位置；
-- 超量支持材料不会缩成小字，而是转入可编辑的 PowerPoint 演讲者备注；核验数字和专有名称必须保持；
-- 专业模式关键页 Agent 只能重排冻结内容并使用批准 Token；单页最多尝试两次，失败自动保留普通构图，不会中断整册；
-- 质检报告新增构图节奏分、边距/字体违规、重复率和关键页应用/回退明细。
+```powershell
+python -m pytest backend/tests -q
+npm --prefix frontend test -- --run
+npm --prefix frontend run build
+docker compose --profile pptmaster -f deploy/docker-compose.yml config --quiet
+```
 
-成本变化：标准/专业模式固定增加艺术指导与视觉分镜两次结构化调用；专业模式再按关键页数量增加最多两次/页的场景调用。极速模式阶段与调用量保持不变。
+## 生产部署要点
 
-## 架构与目录
+- 修改默认数据库、MinIO 和所有 API 凭据；真实 `.env` 不得提交；
+- `S3_PUBLIC_ENDPOINT` 必须改为浏览器可达的 HTTPS 域名；
+- PostgreSQL、Redis、MinIO API 不应直接暴露公网；
+- 在反向代理层增加 TLS、登录鉴权、请求体限制和访问日志；当前应用本身没有认证/多租户；
+- PPT-MASTER 使用无人值守 Agent 权限，只在独立非 root 容器运行；
+- 持久化并备份 `pgdata`、`miniodata`、`redisdata` 与 `pptmaster-projects`；
+- 可以扩容普通 Worker；不要用多个 PPT-MASTER Worker 绕过单部署三并发上限。
+
+更新部署：
+
+```powershell
+Set-Location .\deploy
+docker compose --profile pptmaster build --pull
+docker compose --profile pptmaster up -d --force-recreate
+docker compose --profile pptmaster ps -a
+```
+
+## 目录
 
 ```text
-frontend/   React 18 + AntD 5（nginx 容器，SSE 实时进度）
-backend/    FastAPI(api) + Celery(worker) 共用代码
-  app/pipeline/   三模式流水线：Orchestrator + 16 个 Stage（含 BEAUTIFY）+ Guard 层 + Checkpoint
-  app/ai/         LLM Gateway（Qwen/DeepSeek 路由、熔断、JSON 修复、调用计量）
-  app/ppt/        python-pptx 渲染引擎（20 种版式、文本测量、原生图表）
-    design_tokens.py  视觉规范单一事实来源（字号/间距/网格/锚线）
-    visual_score.py   九维视觉评分规则引擎（逐页+整册，零 LLM 成本）
-    visual_ops.py     Fix Ops 受控 DSL + 确定性调整器 + PPTX 几何微调
-  app/parser/     PDF(PyMuPDF) / DOCX / PPTX 模板解析
-  app/pptmaster/  ppt-master 集成（独立能力）：能力目录 / 提示词编译 / Agent 运行器(claude|codex|mock) / 任务服务
-deploy/     docker-compose + .env + 初始化脚本
-docs/       PRD / UI 设计 / 实现方案 / 视觉优化设计 / ppt-master 集成设计
-ppt-master/ （不入库）hugohe3/ppt-master 稀疏克隆，与 backend 同级；仅本地开发的 pptmaster Worker 使用，容器镜像自带一份
+.
+├── backend/                 FastAPI、Celery、主流水线、PPT 渲染与 PPT-MASTER 包装
+├── frontend/                React 18 + TypeScript + Ant Design
+├── deploy/                  Docker Compose、环境变量示例、数据库初始化
+├── docs/                    产品、UI、实现、视觉、PPT-MASTER、开发部署文档
+│   ├── images/              Logo 与实际功能截图
+│   └── plans/               历史设计/实施计划
+└── ppt-master/              本地集成仓库（默认被当前仓库忽略，容器构建时获取）
 ```
 
-七个容器：frontend / api / worker / postgres(pgvector) / redis / minio / minio-init；可选第八个 `pptmaster-worker`（profile `pptmaster`）。
+## API 与详细文档
 
-## ppt-master 生成（可选独立能力）
+- [文档中心](docs/README.md)
+- [产品需求](docs/01-PRD.md)
+- [UI 与交互](docs/02-UI-DESIGN.md)
+- [整体实现](docs/03-IMPLEMENTATION.md)
+- [视觉优化](docs/04-VISUAL-OPTIMIZATION.md)
+- [PPT-MASTER 集成](docs/05-PPTMASTER-INTEGRATION.md)
+- [开发、配置与部署](docs/06-DEVELOPMENT-DEPLOYMENT.md)
 
-**是什么**：[ppt-master](https://github.com/hugohe3/ppt-master)（MIT，47k★）是运行在 coding agent 里的 PPT 设计工作流：LLM 逐页手写受控 SVG → 脚本编译为原生 DrawingML PPTX，视觉自由度与原生深度远高于版式引擎。本项目把它**当工具**接入：
+运行后可在 Swagger 查看当前 API 的请求和响应 Schema：<http://localhost:8000/docs>。
 
-```text
-前端 /pptmaster ── POST /api/v1/pptmaster/jobs（multipart）──▶ API 落库 + 材料上 MinIO ──▶ Celery 队列 pptmaster
-        ▲ 每 3s 轮询 GET /jobs、GET /jobs/{id}                                     │
-        │                                                                          ▼
-   列表/进度/详情/预览/下载  ◀── 产物(PPTX/预览/日志/报告)上 MinIO ◀── pptmaster-worker：project_manager.py init 建工作区
-                                                                     → 放材料 → 子进程 `claude -p …` / `codex exec …`
-                                                                     （或 mock）无人值守跑完 → 收集 exports/*.pptx
-```
+## 当前边界
 
-- **入参**（覆盖 ppt-master 支持的方式）：输入方式 上传源文件(PDF/DOCX/PPTX/XLSX/MD/HTML/EPUB/图片，多文件) / 仅主题(topic-research) / 粘贴文本 / 网页链接；路线 生成新 PPT / 套用我的 PPTX 模板(template-fill) / 美化现有 PPTX(1:1) / 为 PPTX 加备注·旁白·转场(native-enhance) / 页面图片还原(image-to-pptx，仅 Codex) / 蒸馏模板(create-template)；档位 quick / default(自动决策不确认)；模型由环境目录三选一；页数、8 种画布、视觉风格、叙事模式、阅读模式、语言、图片素材策略、增强开关和附加要求。模板填充路线的视觉风格固定为上传模板，不可修改。
-- **状态与产物**：`pending → running(progress/stage 启发式：事件流 + 工作区文件) → succeeded|failed|canceled`；列表独立展示模型，运行中悬浮展示 `stage1 --> stage2 --> stage3` 完整轨迹；最多同时生成 3 个，更多任务保持 pending 排队；产物 PPTX、逐页预览、日志与报告均支持下载。
-- **成本**：每个任务的 Claude 费用/轮次记录在详情 `run` 字段；2026-08-17 容器实测 `qwen3.7-plus`、topic/quick/1 页为 375 秒、40 轮、约 $2.05。实际成本随主题、页数、模型和质检修复轮次变化；`PPTMASTER_CLAUDE_MAX_BUDGET_USD` 可设单任务费用上限。
-- **完全隔离**：独立表 `pptmaster_jobs`、独立路由 `/api/v1/pptmaster/*`、独立 Celery 队列 `pptmaster` 与 Worker，不触碰生成流水线代码。
+- 扫描 PDF OCR 默认未实现，无有效文本时返回 E2003；
+- 完整 embedding/RAG、Prometheus/Grafana、自动产物清理和按用户并发配额尚未落地；
+- 当前没有登录鉴权和多租户隔离，不应直接裸露到公网；
+- PPT-MASTER 的 URL 在 API 层只验证格式，应用层固定最多三次抓取的护栏尚未独立实现；
+- PPT-MASTER 单任务不能续接原 Agent 会话，但已有完整导出或 SVG 时可做产物级恢复；
+- 高级动画、旁白、图片搜索/生成依赖 ppt-master 及对应外部 Provider 配置。
 
-**单独启动 ppt-master Worker（主服务已经运行时）**：
+## 开源协议
 
-```bash
-# .env 追加 Agent 凭据与模型；百炼 Base URL 必须以 /apps/anthropic 结尾
-cd deploy && docker compose --profile pptmaster up -d --build pptmaster-worker
-# 镜像 = worker 镜像 + Node20 + @anthropic-ai/claude-code + @openai/codex + ppt-master(v4.8.0 稀疏克隆) + 其 pip 依赖
-```
+本仓库代码采用宽松的 [MIT License](LICENSE)：允许使用、复制、修改、合并、发布、分发、再许可和销售，但需要保留版权及许可声明，软件按“现状”提供且不附带担保。
 
-**本地开发**：把 ppt-master 稀疏克隆到项目根目录下的 `ppt-master/`（与 `backend/` 同级，已在 `.gitignore` 中排除），安装其依赖到后端 venv，然后单独起一个只消费 `pptmaster` 队列的 Worker：
+第三方依赖、字体、容器镜像以及构建时获取的 [ppt-master](https://github.com/hugohe3/ppt-master) 仍分别遵循各自许可证；本仓库的 MIT 许可不会覆盖或替代第三方许可。
 
-```bash
-# 在 main-ppt 项目根目录执行
-git clone --filter=blob:none --sparse --depth 1 --branch v4.8.0 https://github.com/hugohe3/ppt-master.git ppt-master
-git -C ppt-master sparse-checkout set --no-cone '/*' '!/examples' '!/docs/assets'   # 剔除 800MB 示例（Windows Git Bash 前置 MSYS_NO_PATHCONV=1）
-pip install -r ppt-master/skills/ppt-master/requirements.txt
-# backend/.env：PPTMASTER_REPO_DIR=../ppt-master  PPTMASTER_DEFAULT_AGENT=auto  PPTMASTER_MAX_CONCURRENT_JOBS=3
-cd backend && celery -A app.worker worker -Q pptmaster -c 3 -P threads
-```
-
-没有任何 Agent CLI 时选 `mock` 仍可跑通"提交 → 轮询 → 上传 → 预览 → 下载"全链路（产出占位 PPTX）。冒烟脚本按直接执行方式编写：`python tests/test_pptmaster.py`；当前本机 Python 环境需先安装 `backend/requirements.txt`，否则会在导入 `boto3` 等依赖时中止。
-
-## 关键运维
-
-```bash
-# Worker 扩容（吞吐扩容点；同时按需调大 .env 的 LLM_MAX_CONCURRENCY_PER_PROVIDER）
-docker compose up -d --scale worker=4
-
-# 看生成日志（中文结构化日志，含 job_id/stage）
-docker compose logs -f worker
-
-# 切换阿里云 OSS：改 .env 后重启
-#   STORAGE_BACKEND=oss
-#   S3_ENDPOINT=https://oss-cn-hangzhou.aliyuncs.com  S3_PUBLIC_ENDPOINT=同左
-#   S3_ACCESS_KEY/S3_SECRET_KEY=OSS 的 AK/SK  S3_BUCKET=你的桶
-```
-
-## 故障排查
-
-| 现象 | 处理 |
-|---|---|
-| 任务失败显示 E3001 | 检查 .env 的 LLM Key 与网络；`docker compose logs worker | grep LLM` |
-| 预览图不出（PPTX 可下载） | E6003 降级：检查 worker 容器内 `soffice --version`；本机跑 Worker 时多半是 `CONVERT_BACKEND=none`（无 LibreOffice），见"本地开发"一节的两种补齐方式；不影响交付 |
-| 下载/预览失败 | 先检查 API 能否访问 MinIO：`docker compose logs api`；后端代理下载不要求浏览器直连 `minio` 服务名，外部预签名场景才需正确设置 `S3_PUBLIC_ENDPOINT` |
-| 中文显示为方块 | worker 镜像需含 fonts-noto-cjk（默认已装）；重新 build |
-| 任务卡 pending | worker 未起或队列积压：`docker compose ps`、`logs worker` |
-
-## 本地开发（不使用 Docker 跑后端）
-
-支持直连本地 PostgreSQL（`localhost:5432`）：`ppt` 数据库不存在时**启动自动创建**，无需手工建库。
-
-```bash
-# 1) 后端环境配置
-cd backend
-cp .env.example .env        # 按需改 DATABASE_URL 密码、填 LLM Key
-                            # Windows 无 LibreOffice 时保持 CONVERT_BACKEND=none（见下方说明）
-
-# 2) Redis / MinIO 只起依赖容器（compose 已把端口映射到本机回环地址）
-cd ../deploy && docker compose up -d redis minio minio-init
-
-# 3) 启动后端（Python 3.11+）
-cd ../backend && pip install -r requirements.txt
-uvicorn app.main:app --reload             # API → http://localhost:8000
-celery -A app.worker worker -Q generate,convert -c 4 -P threads   # Worker（Windows 用 -P threads）
-
-# 4) 前端
-cd ../frontend && npm install && npm run dev -- --port 5800
-# → http://localhost:5800（代理到 :8000）
-# 注意：Vite 默认端口 5173 可能落在 Windows 保留端口段（netsh interface ipv4 show
-# excludedportrange protocol=tcp 查看），报 EACCES 时换 5800 等空闲端口
-```
-
-> 容器部署与本地开发互不干扰：compose 内的 PostgreSQL 映射到本机 `127.0.0.1:15432`，不与本地 5432 实例冲突。
-
-**本机跑 Worker 时的预览转换说明**：PPTX→PDF→PNG 预览链路依赖 LibreOffice。本机没有装时
-（`CONVERT_BACKEND=none`）任务照常成功、PPTX 可下载，但成功页没有预览图。两种补齐方式：
-
-1. **推荐：Worker 用容器跑**（镜像内置 LibreOffice + Noto CJK 字体），本机只跑 API 与前端：
-   ```bash
-   cd deploy && docker compose build worker && docker compose up -d --no-deps worker
-   # 同时停掉本机 celery，避免两个 worker 抢任务；容器 worker 经 deploy/.env 连宿主机数据库
-   ```
-2. 本机安装 LibreOffice，然后 backend/.env 设 `CONVERT_BACKEND=soffice`、
-   `SOFFICE_BIN=C:/Program Files/LibreOffice/program/soffice.com` 并重启 Worker。
-
-## 当前版本边界（V1）
-
-- 模板页 XML 克隆已实现：封面/目录/章节/尾页整页克隆，正文以内容框架页为底版；匹配或克隆失败时降级到系统版式；
-- `OCR_ENABLED` 目前只有配置字段，没有 OCR 执行实现；扫描件 PDF/DOCX 会明确报错 E2003，需要先转成可复制文本的 PDF/DOCX；
-- Vision QA 默认关闭（`VISION_QA_ENABLED=true` 且配置 qwen-vl 后启用）；
-- `DocChunk`/embedding 只有数据模型骨架，专业模式尚未执行真正的向量 RAG 检索；
-- 单页/单章重新生成、主流水线图片素材管线仍在 V2 路线图；
-- 当前无登录鉴权和租户隔离，CORS 全开放；`user_id` 只是预留字段；
-- `USER_MAX_CONCURRENT_JOBS`、产物/Checkpoint 留存天数目前仅有配置项，没有调度与清理任务；
-- Prometheus/Grafana、Kubernetes、Alembic 迁移和自动压测尚未实现；
-- ppt-master 的图片搜索、AI 生图、TTS 和部分模型 Provider 仍依赖各自外部 Key；未配置时只能选择不使用这些资源或按工作流降级。
+Logo 使用图像生成工具为本项目生成，源文件位于 [`docs/images/logo.png`](docs/images/logo.png)。

@@ -54,7 +54,7 @@ import type {
 } from '../api/types';
 import { formatDuration, formatTime } from '../utils/format';
 import {
-  isTemplateStyleLocked,
+  isPptMasterStyleEditable,
   resolveInitialModel,
   resolvePptMasterModel,
   resolvePptMasterStyle,
@@ -577,7 +577,6 @@ function SubmitForm({
   const profileKey = Form.useWatch('profile', form) ?? initialValues.profile;
   const selectedRoute = options.routes.find((r) => r.key === routeKey);
   const needsTemplate = !!selectedRoute?.needs_template;
-  const templateStyleLocked = isTemplateStyleLocked(routeKey);
   const needsPptx = !!selectedRoute?.needs_pptx;
   const routeAgents = selectedRoute?.agents;
   const hasAgentRestriction = !!routeAgents && routeAgents.length > 0;
@@ -924,14 +923,16 @@ function SubmitForm({
             <Form.Item
               name="style"
               label="视觉风格"
-              extra={templateStyleLocked ? '视觉风格由上传的 PPTX 模板决定，不可修改' : undefined}
+              extra={routeKey === 'template_fill'
+                ? '可自由选择；选择“由上传的 PPTX 模板决定”时，Agent 会分析模板内容与结构后确定风格'
+                : undefined}
             >
               <Select
-                disabled={templateStyleLocked}
+                disabled={!isPptMasterStyleEditable(routeKey)}
                 showSearch
                 optionFilterProp="label"
                 options={options.styles
-                  .filter((s) => templateStyleLocked ? s.key === 'template' : s.key !== 'template')
+                  .filter((s) => routeKey === 'template_fill' || s.key !== 'template')
                   .map((s) => ({ value: s.key, label: s.label, desc: s.desc }))}
                 optionRender={(opt) => (
                   <div>

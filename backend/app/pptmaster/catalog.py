@@ -44,7 +44,8 @@ CANVAS_FORMATS = [
 
 STYLES = [
     {"key": "auto", "label": "自动（由 Agent 依据材料选择）"},
-    {"key": "template", "label": "由上传的 PPTX 模板决定", "desc": "模板填充路线专用，不可修改"},
+    {"key": "template", "label": "由上传的 PPTX 模板决定",
+     "desc": "Agent 分析上传模板的内容、结构与视觉语言后归纳风格"},
     {"key": "swiss-minimal", "label": "swiss-minimal · 瑞士极简网格"},
     {"key": "editorial", "label": "editorial · 杂志编辑风"},
     {"key": "photo-editorial", "label": "photo-editorial · 摄影编辑风"},

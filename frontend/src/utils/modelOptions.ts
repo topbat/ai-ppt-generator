@@ -17,13 +17,13 @@ export function resolvePptMasterModel(
   return resolveInitialModel(models, route === 'beautify' ? beautifyModel : defaultModel);
 }
 
-export function isTemplateStyleLocked(route: string): boolean {
-  return route === 'template_fill';
+export function isPptMasterStyleEditable(_route: string): boolean {
+  return true;
 }
 
 export function resolvePptMasterStyle(route: string, currentStyle: string): string {
-  if (isTemplateStyleLocked(route)) return 'template';
-  return currentStyle === 'template' ? 'auto' : currentStyle;
+  if (route !== 'template_fill' && currentStyle === 'template') return 'auto';
+  return currentStyle;
 }
 
 export function stageTooltipText(history: string[] | undefined, currentStage?: string): string {

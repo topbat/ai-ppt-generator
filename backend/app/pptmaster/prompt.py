@@ -51,8 +51,8 @@ def build_prompt(biz_id: str, params: dict, source_rel_paths: list[str],
             lines.append("路线：Generate PPTX，走完整默认流程（Strategist → Executor → 质检 → 导出）；"
                          "但 Stage 1/Stage 2 的设计规格确认由你根据下述参数自行锁定，不要等待我确认。")
     elif route == "template_fill":
-        lines.append("路线：Fill Native PPTX（template-fill-pptx）：把材料内容填入我提供的 PPTX 模板，"
-                     "保留模板设计，导出填充后的可编辑 PPTX。")
+        lines.append("路线：Fill Native PPTX（template-fill-pptx）：以我提供的 PPTX 模板内容、页面结构、"
+                     "占位区域与原生对象为基础填充材料；视觉风格按下方参数要求执行，导出可编辑 PPTX。")
     elif route == "beautify":
         lines.append("路线：Generate PPTX 的 beautify-pptx profile：对我提供的 PPTX 做美化，"
                      "页数 / 顺序 / 措辞必须 1:1 保持，只优化版式与视觉层级。"
@@ -95,7 +95,8 @@ def build_prompt(biz_id: str, params: dict, source_rel_paths: list[str],
         reqs.append("页数：由你根据材料量决定")
     style = params.get("style") or "auto"
     if style == "template":
-        reqs.append("视觉风格：完全由上传的 PPTX 模板决定；不得改动模板的配色、字体、版式、背景与品牌视觉语言")
+        reqs.append("视觉风格：先分析上传的 PPTX 模板的内容定位、页面结构、配色、字体、版式、背景与品牌元素，"
+                    "再由你归纳并确定适合本次内容的统一风格；允许为新内容做合理适配，避免机械照搬")
     elif style == "custom":
         reqs.append("视觉风格：自定义，见下方附加要求")
     elif style != "auto":

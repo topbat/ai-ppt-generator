@@ -1,8 +1,8 @@
 # AI PPT 生成系统 — 视觉优化（Visual Optimization）设计文档
 
-> 版本：V1.0
-> 日期：2026-08-14
-> 定位：在现有"快速生成"能力之上叠加的第二阶段能力
+> 版本：V1.2
+> 日期：2026-08-18（按当前实现同步）
+> 定位：企业模板生成的整册视觉规划、页面构图、确定性评分与美化能力
 > 思想来源：tmp/AI 辅助美化.md（12 维排版认知 / Design Token / 视觉评分模型 / 两阶段架构）
 > 关联文档：[03-IMPLEMENTATION.md](03-IMPLEMENTATION.md)（快速生成架构）
 
@@ -90,6 +90,28 @@ color_roles:           # 色彩角色（从模板采收后映射，每页 主色
 整册重复度以构图指纹控制，指纹包含布局家族、语法、区域数量、镜像、焦点位置和背景。相邻指纹不得相同；单一布局家族在有替代候选时不超过 30%；三页窗口不得保持同一焦点位置。质检报告以独立 `composition` 区块展示这些指标，不改变既有 quality score 和九维 visual score。
 
 专业模式的关键页自由设计使用受约束 SceneSpec，而非任意 SVG：图元只允许 text/shape/chart/table/connector，每个图元必须引用冻结 content_id，文本必须逐字相等，样式只能引用模板批准 Token。关键页 Agent 失败只影响当前页，并自动回到已验证的普通布局。
+
+### 3.2 整册艺术指导与视觉分镜（已实现）
+
+标准/专业模式在内容完成前增加两层全局设计决策：
+
+1. `ART_DIRECTION`：`generate_art_direction()` 根据模板 Token 和大纲生成整册色彩角色、字体层级、构图原则、影像策略和节奏方向；模型异常时使用由模板 Token 推导的默认艺术指导；
+2. `STORYBOARD`：`generate_storyboard()` 为每页生成 `SlideVisualPlan`，包含布局家族、语法、焦点、镜像、背景、密度和是否为关键页；
+3. `COMPOSE`：`CompositionStage` 将视觉分镜投影到模板 `TemplateSpaceContract`，通过布局 Guard 后形成可执行 recipe；
+4. `KEY_SLIDE`：专业模式只把少量关键页交给自由设计 Agent，输出受限 `SceneSpec`，验证失败即单页回退；
+5. `ASSEMBLE/RENDER`：组装冻结内容与构图 recipe，由确定性 Renderer 绘制。
+
+内容、布局和视觉计划之间有明确边界：视觉 Agent 可以选择构图与样式，但不能改事实、数字、专有名称或冻结文案。容量不足时先保留结论和事实，把支持材料移入备注；不以缩小字号掩盖溢出。
+
+### 3.3 四边距、字体、层级与连贯性检查
+
+- `TemplateSpaceContract` 为每页定义 `safe_zone` 和 logo/页脚等 `protected_zones`；
+- `layout_guard.check_box()` 分别产生 `margin_top`、`margin_right`、`margin_bottom`、`margin_left` 问题，所有内容容器四边都必须通过；
+- recipe 的内容矩形再次扣除容器内边距，避免文本贴边；
+- 标题、正文、说明、数字使用 Token 化字号和字重，正文不靠无下限缩字解决容量问题；
+- `deck_rhythm` 在整册范围控制布局家族、焦点位置、镜像和相邻构图指纹重复；
+- QA 将四边距违规、重复度、布局家族分布和关键页回退写入 `report.composition`，与视觉分、质量分并列；
+- 内容阶段执行相邻页连续性检查，保证章节过渡、标题口径和信息递进连贯。
 
 ## 4. 视觉评分模型（PPT Visual Score，独立于生成质量分）
 
