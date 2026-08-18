@@ -6,6 +6,8 @@ from sqlalchemy import func, select
 from sqlalchemy.orm import Session
 
 from app.api.object_response import object_response
+from app.core.config import (default_selectable_model, get_settings, selectable_models,
+                             validate_selectable_model)
 from app.core.database import get_db
 from app.core.errors import ERRORS
 from app.core.ids import new_biz_id
@@ -41,7 +43,7 @@ def _job_dto(job: GenerationJob, db: Session, with_stages: bool = False) -> dict
         JobSlide.job_id == job.id, JobSlide.page_no == 1)).scalar_one_or_none()
     dto = {
         "id": job.biz_id, "biz_id": job.biz_id, "job_id": job.biz_id,
-        "status": job.status, "mode": job.mode, "density": job.density,
+        "status": job.status, "mode": job.mode, "density": job.density, "model": job.model,
         "target_pages": job.target_pages, "actual_pages": job.actual_pages,
         "progress": job.progress, "current_stage": job.current_stage,
         "current_stage_name": STAGE_NAMES.get(job.current_stage or "", job.current_stage),
@@ -79,8 +81,21 @@ def _job_dto(job: GenerationJob, db: Session, with_stages: bool = False) -> dict
     return dto
 
 
+@router.get("/options")
+def get_options():
+    settings = get_settings()
+    return ok({
+        "models": selectable_models(settings),
+        "default_model": default_selectable_model(settings),
+    })
+
+
 @router.post("")
 def create_job(req: JobCreateReq, db: Session = Depends(get_db)):
+    try:
+        model = validate_selectable_model(req.model)
+    except ValueError as exc:
+        return err(1001, str(exc))
     tpl = db.execute(select(Template).where(Template.biz_id == req.template_id,
                                             Template.deleted_at.is_(None))).scalar_one_or_none()
     doc = db.execute(select(Document).where(Document.biz_id == req.document_id,
@@ -101,14 +116,14 @@ def create_job(req: JobCreateReq, db: Session = Depends(get_db)):
 
     job = GenerationJob(biz_id=new_biz_id("ppt"), template_id=tpl.id, document_id=doc.id,
                         target_pages=req.pages, mode=req.mode, density=req.density,
-                        options=req.options, status="pending")
+                        model=model, options=req.options, status="pending")
     db.add(job)
     db.commit()
     # 入队（异步执行，接口秒回）
     from app.worker import generate_ppt
     generate_ppt.delay(job.id, False)
-    logger.info("生成任务已创建并入队：%s 模式=%s 页数=%d 模板=%s 文档=%s",
-                job.biz_id, req.mode, req.pages, tpl.name, doc.name)
+    logger.info("生成任务已创建并入队：%s 模式=%s 模型=%s 页数=%d 模板=%s 文档=%s",
+                job.biz_id, req.mode, model, req.pages, tpl.name, doc.name)
     return ok({"job_id": job.biz_id})
 
 
@@ -193,7 +208,7 @@ def retry_job(biz_id: str, req: JobRetryReq, db: Session = Depends(get_db)):
             doc_id = doc.id
     new = GenerationJob(biz_id=new_biz_id("ppt"), template_id=tpl_id, document_id=doc_id,
                         target_pages=job.target_pages, mode=job.mode, density=job.density,
-                        options=job.options, status="pending",
+                        model=job.model, options=job.options, status="pending",
                         parent_job_id=job.id, version_no=job.version_no + 1)
     db.add(new)
     db.commit()

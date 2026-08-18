@@ -15,7 +15,7 @@ _SYSTEM = (
 
 
 def compress_slide_text(gw: LLMGateway, mode: str, slide_content: dict,
-                        issues: list[str], job_id: int) -> dict:
+                        issues: list[str], job_id: int, model_override: str | None = None) -> dict:
     """输入整页内容 JSON 与问题清单，输出压缩后的同结构 JSON。"""
     import json
     user = f"""以下 PPT 页面存在问题：{'；'.join(issues)}。
@@ -26,4 +26,5 @@ def compress_slide_text(gw: LLMGateway, mode: str, slide_content: dict,
 
 # 输出：与输入同结构的完整 JSON"""
     logger.info("修复 Agent 压缩第 %s 页文案，问题数=%d", slide_content.get("page"), len(issues))
-    return gw.chat_json("repair", mode, _SYSTEM, user, job_id=job_id, max_tokens=3000)
+    return gw.chat_json("repair", mode, _SYSTEM, user, job_id=job_id, max_tokens=3000,
+                        model_override=model_override)

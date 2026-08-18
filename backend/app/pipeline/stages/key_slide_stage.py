@@ -92,6 +92,7 @@ class KeySlideDesignStage(Stage):
                         contract,
                         adjacent,
                         ctx.job_pk,
+                        model_override=getattr(ctx, "model", None),
                     )
                     scene = SceneSpec.model_validate(raw.get("scene") or raw)
                     accepted = validate_scene(scene, locked, contract)

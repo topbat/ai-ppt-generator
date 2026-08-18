@@ -45,7 +45,8 @@ class KnowledgeStage(Stage):
                 "你是文档分析专家，只输出JSON。",
                 f"请为以下各章节输出一句话摘要与3个关键要点。\n{brief}\n\n"
                 '输出JSON: {"chapters":[{"title":"章节名","summary":"摘要","key_points":["要点"]}]}',
-                job_id=ctx.job_pk, max_tokens=3000, json_mode=True)
+                job_id=ctx.job_pk, max_tokens=3000, json_mode=True,
+                model_override=ctx.model)
             parsed = repair_json(text)
             if parsed and parsed.get("chapters"):
                 output["chapter_summaries"] = parsed["chapters"]

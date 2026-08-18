@@ -10,7 +10,8 @@ _STORYBOARD_SYSTEM = """你是企业演示文稿的视觉分镜师。
 严禁研究外部信息、创造新事实或改写页面标题；不要输出正文内容。"""
 
 
-def generate_art_direction(gateway, mode, template_tokens, outline, job_id) -> dict:
+def generate_art_direction(gateway, mode, template_tokens, outline, job_id,
+                           model_override: str | None = None) -> dict:
     safe_tokens = {
         key: template_tokens.get(key)
         for key in (
@@ -48,10 +49,12 @@ def generate_art_direction(gateway, mode, template_tokens, outline, job_id) -> d
         job_id=job_id,
         temperature=0.2,
         max_tokens=1600,
+        model_override=model_override,
     )
 
 
-def generate_storyboard(gateway, mode, art_direction, page_plan, job_id) -> dict:
+def generate_storyboard(gateway, mode, art_direction, page_plan, job_id,
+                        model_override: str | None = None) -> dict:
     pages = [
         {"page": item.get("page"), "type": item.get("type"), "title": item.get("title", "")}
         for item in page_plan
@@ -93,4 +96,5 @@ def generate_storyboard(gateway, mode, art_direction, page_plan, job_id) -> dict
         job_id=job_id,
         temperature=0.2,
         max_tokens=3000,
+        model_override=model_override,
     )

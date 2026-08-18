@@ -125,6 +125,7 @@ class ArtDirectionStage(Stage):
                 tokens,
                 (ctx.data.get("OUTLINE") or {}).get("outline") or [],
                 ctx.job_pk,
+                model_override=getattr(ctx, "model", None),
             )
             direction = DeckArtDirection.model_validate(raw.get("art_direction") or raw)
             return {"art_direction": direction.model_dump(), "source": "model", "degraded": False}
@@ -158,6 +159,7 @@ class StoryboardStage(Stage):
                     (ctx.data.get("ART_DIRECTION") or {}).get("art_direction") or {},
                     page_plan,
                     ctx.job_pk,
+                    model_override=getattr(ctx, "model", None),
                 )
                 raw_slides = raw.get("slides") or []
             except Exception as error:

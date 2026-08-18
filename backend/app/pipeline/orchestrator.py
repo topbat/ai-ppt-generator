@@ -47,6 +47,7 @@ def run_job(job_pk: int, resume: bool = False) -> None:
     publisher = ProgressPublisher(job_pk, biz_id, get_session_factory())
     ctx = JobContext(
         job_pk=job_pk, biz_id=biz_id, mode=mode, density=job.density,
+        model=job.model or settings.llm_default_selectable_model,
         target_pages=job.target_pages, template_pk=job.template_id,
         document_pk=job.document_id, options=job.options or {}, attempt=attempt,
         storage=get_storage(), publisher=publisher)

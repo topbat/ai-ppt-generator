@@ -128,7 +128,9 @@ class ContentStage(Stage):
             t0 = time.monotonic()
             material = material_of(ci)
             try:
-                result = generate_chapter_batch(gw, ctx.mode, material, plans, ctx.density, ctx.job_pk)
+                result = generate_chapter_batch(
+                    gw, ctx.mode, material, plans, ctx.density, ctx.job_pk,
+                    model_override=ctx.model)
                 got = {int(s["page"]): s for s in result.get("slides", []) if s.get("page")}
             except Exception as e:
                 logger.warning("章节 %d 批量生成失败，整章降级: %s", ci, e)
@@ -159,7 +161,8 @@ class ContentStage(Stage):
             for attempt in (1, 2):  # 单页失败重试 1 次
                 try:
                     raw = generate_page(gw, ctx.mode, p, material["content"], ctx.density,
-                                        ctx.job_pk, facts_hint=facts_hint)
+                                        ctx.job_pk, facts_hint=facts_hint,
+                                        model_override=ctx.model)
                     break
                 except Exception as e:
                     logger.warning("第 %d 页生成失败(第%d次): %s", p["page"], attempt, e)

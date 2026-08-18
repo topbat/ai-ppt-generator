@@ -38,12 +38,13 @@ class OutlineStage(Stage):
 
         if ctx.mode == "fast":
             result = outline_plan_combo(gw, ctx.mode, ir["title"], chapters,
-                                        ctx.target_pages, ctx.density, ctx.job_pk)
+                                        ctx.target_pages, ctx.density, ctx.job_pk,
+                                        model_override=ctx.model)
             outline = result.get("outline") or []
             ai_slides = result.get("slides") or []
         else:
             result = generate_outline(gw, ctx.mode, ir["title"], chapters,
-                                      ctx.target_pages, ctx.job_pk)
+                                      ctx.target_pages, ctx.job_pk, model_override=ctx.model)
             outline = result.get("outline") or []
             ai_slides = []
 
@@ -83,7 +84,7 @@ class PlanStage(Stage):
             # 标准/专业：独立调用 Slide Planner
             gw = get_gateway()
             result = plan_slides(gw, ctx.mode, outline, _chapters_for_ai(ctx),
-                                 ctx.target_pages, ctx.job_pk)
+                                 ctx.target_pages, ctx.job_pk, model_override=ctx.model)
             ai_slides = result.get("slides") or []
 
         # 模板含"感谢聆听"类尾页时，末页保留为模板尾页

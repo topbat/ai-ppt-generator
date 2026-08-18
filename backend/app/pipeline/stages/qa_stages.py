@@ -264,7 +264,9 @@ class RepairStage(Stage):
                     continue
                 issues_txt = [i["detail"] for i in report["issues"] if i.get("page") == pno][:3]
                 try:
-                    fixed = compress_slide_text(gw, ctx.mode, content, issues_txt, ctx.job_pk)
+                    fixed = compress_slide_text(
+                        gw, ctx.mode, content, issues_txt, ctx.job_pk,
+                        model_override=ctx.model)
                     plan_page = next(p for p in ctx.data["PLAN"]["plan"] if p["page"] == pno)
                     material = ""  # 修复只压缩不新增，无需原文回查新增数字
                     guarded, _ = content_guard(fixed, plan_page, ctx.density, material, "fast")

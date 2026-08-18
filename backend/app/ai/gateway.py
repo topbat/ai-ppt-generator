@@ -15,7 +15,7 @@ import time
 
 from openai import APIStatusError, OpenAI
 
-from app.core.config import get_settings
+from app.core.config import get_settings, validate_selectable_model
 from app.core.errors import PPTError
 from app.core.logging import ctx_stage, get_logger
 
@@ -106,8 +106,13 @@ class LLMGateway:
                 raise PPTError("E3001", f"未知 Provider: {provider}")
         return self._clients[provider]
 
-    def _route(self, task_type: str, mode: str) -> list[tuple[str, str]]:
+    def _route(self, task_type: str, mode: str,
+               model_override: str | None = None) -> list[tuple[str, str]]:
         """返回调用顺序：[主通道, 主通道(重试), 备用通道]，熔断中的 Provider 直接跳过。"""
+        if model_override:
+            model = validate_selectable_model(model_override, self.settings)
+            primary = (provider_of(model), model)
+            return [primary, primary] if self._breakers[primary[0]].available() else [primary]
         route = self.routes.get(task_type) or self.routes["page_content"]
         primary = route.get(mode) or route.get("standard") or next(iter(route.values()))
         fallback = route.get("fallback")
@@ -119,10 +124,11 @@ class LLMGateway:
     # ---- 核心入口 ----
     def chat_json(self, task_type: str, mode: str, system: str, user: str,
                   job_id: int | None = None, temperature: float = 0.4,
-                  max_tokens: int = 4096) -> dict:
+                  max_tokens: int = 4096, model_override: str | None = None) -> dict:
         """要求返回 JSON 对象；内部完成 json 修复与多通道重试。"""
         text = self.chat_text(task_type, mode, system, user, job_id=job_id,
-                              temperature=temperature, max_tokens=max_tokens, json_mode=True)
+                              temperature=temperature, max_tokens=max_tokens, json_mode=True,
+                              model_override=model_override)
         obj = repair_json(text)
         if obj is None:
             logger.error("JSON 修复失败，原始返回前 300 字: %s", text[:300])
@@ -131,11 +137,12 @@ class LLMGateway:
 
     def chat_text(self, task_type: str, mode: str, system: str, user: str,
                   job_id: int | None = None, temperature: float = 0.4,
-                  max_tokens: int = 4096, json_mode: bool = False) -> str:
+                  max_tokens: int = 4096, json_mode: bool = False,
+                  model_override: str | None = None) -> str:
         if self.settings.llm_mock:
             return _mock_response(task_type, user)
 
-        chain = self._route(task_type, mode)
+        chain = self._route(task_type, mode, model_override)
         last_error: Exception | None = None
         for i, (provider, model) in enumerate(chain):
             is_fallback = i == len(chain) - 1 and len(chain) > 1 and chain[i] != chain[0]

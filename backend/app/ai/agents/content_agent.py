@@ -48,7 +48,7 @@ def _limits_text(density: str) -> str:
 
 
 def generate_chapter_batch(gw: LLMGateway, mode: str, chapter: dict, plans: list[dict],
-                           density: str, job_id: int) -> dict:
+                           density: str, job_id: int, model_override: str | None = None) -> dict:
     """极速模式：一次生成整章所有页面。"""
     plan_text = "\n".join(
         f"- 第{p['page']}页 [{p['type']}] 标题:{p['title']} 核心观点:{p.get('key_message', '')}"
@@ -71,11 +71,13 @@ def generate_chapter_batch(gw: LLMGateway, mode: str, chapter: dict, plans: list
   "elements":[...]}}]}}
 必须覆盖清单中的每一页。"""
     logger.info("章节批量生成(极速)：%s，共 %d 页", chapter["title"], len(plans))
-    return gw.chat_json("page_content", mode, _SYSTEM, user, job_id=job_id, max_tokens=8000)
+    return gw.chat_json("page_content", mode, _SYSTEM, user, job_id=job_id, max_tokens=8000,
+                        model_override=model_override)
 
 
 def generate_page(gw: LLMGateway, mode: str, plan: dict, material: str,
-                  density: str, job_id: int, facts_hint: str = "") -> dict:
+                  density: str, job_id: int, facts_hint: str = "",
+                  model_override: str | None = None) -> dict:
     """标准/专业模式：单页生成。material 为该页对应章节资料（专业模式为 RAG 检索结果）。"""
     facts_block = f"\n# 已核验事实（引用数字必须从中选取）\n{facts_hint}\n" if facts_hint else ""
     user = f"""请生成 PPT 第 {plan['page']} 页内容。
@@ -95,4 +97,5 @@ def generate_page(gw: LLMGateway, mode: str, plan: dict, material: str,
 
 # 输出 JSON
 {{"page":{plan['page']},"type":"{plan['type']}","title":"标题","subtitle":"副标题或null","elements":[...]}}"""
-    return gw.chat_json("page_content", mode, _SYSTEM, user, job_id=job_id, max_tokens=3000)
+    return gw.chat_json("page_content", mode, _SYSTEM, user, job_id=job_id, max_tokens=3000,
+                        model_override=model_override)

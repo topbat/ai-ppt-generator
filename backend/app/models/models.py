@@ -97,6 +97,7 @@ class GenerationJob(Base, TimestampMixin):
     target_pages: Mapped[int] = mapped_column(Integer)
     mode: Mapped[str] = mapped_column(String(16), default="fast")      # fast|standard|premium
     density: Mapped[str] = mapped_column(String(16), default="medium")  # low|medium|high
+    model: Mapped[str | None] = mapped_column(String(64))
     options: Mapped[dict] = mapped_column(JSON, default=dict)
     status: Mapped[str] = mapped_column(String(16), default="pending")
     # pending|running|waiting_user|succeeded|failed|canceled

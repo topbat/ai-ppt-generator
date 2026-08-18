@@ -116,6 +116,7 @@ def _ensure_database_exists() -> None:
 # 增量新列登记：create_all 不会给已存在的表加列，此处幂等补齐（表名, 列名, 列定义）
 _INCREMENTAL_COLUMNS = [
     ("generation_jobs", "visual_score", "SMALLINT"),   # 视觉分（册级）
+    ("generation_jobs", "model", "VARCHAR(64)"),      # 用户选择的任务级模型
     ("job_slides", "visual_score", "SMALLINT"),        # 视觉分（页级）
 ]
 

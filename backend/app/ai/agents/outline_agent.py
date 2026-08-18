@@ -32,7 +32,8 @@ def _chapters_brief(chapters: list[dict], per_chapter_chars: int, total_chars: i
 
 
 def outline_plan_combo(gw: LLMGateway, mode: str, doc_title: str, chapters: list[dict],
-                       target_pages: int, density: str, job_id: int) -> dict:
+                       target_pages: int, density: str, job_id: int,
+                       model_override: str | None = None) -> dict:
     """极速模式：大纲 + 逐页规划一次产出。"""
     n = len(chapters)
     content_pages = max(1, target_pages - 3 - n)  # 封面+目录+总结=3，章节页=n
@@ -54,11 +55,12 @@ def outline_plan_combo(gw: LLMGateway, mode: str, doc_title: str, chapters: list
               "type": "版式", "title": "页面标题", "key_message": "本页核心观点一句话"}}]}}
 slides 必须覆盖全部 {target_pages} 页（含 cover/toc/section/summary）。"""
     logger.info("调用大纲+规划合并 Agent(极速)：目标 %d 页 / %d 章节", target_pages, n)
-    return gw.chat_json("outline", mode, _SYSTEM, user, job_id=job_id, max_tokens=3500)
+    return gw.chat_json("outline", mode, _SYSTEM, user, job_id=job_id, max_tokens=3500,
+                        model_override=model_override)
 
 
 def generate_outline(gw: LLMGateway, mode: str, doc_title: str, chapters: list[dict],
-                     target_pages: int, job_id: int) -> dict:
+                     target_pages: int, job_id: int, model_override: str | None = None) -> dict:
     """标准/专业模式：仅产出章节大纲与页数分配。"""
     n = len(chapters)
     content_pages = max(1, target_pages - 3 - n)
@@ -75,11 +77,12 @@ def generate_outline(gw: LLMGateway, mode: str, doc_title: str, chapters: list[d
 # 输出 JSON
 {{"outline": [{{"chapter": "章节名", "pages": 正文页数, "summary": "本章重点", "source_chapter_idx": 对应资料章节序号从1开始}}]}}"""
     logger.info("调用大纲 Agent：目标 %d 页 / %d 章节", target_pages, n)
-    return gw.chat_json("outline", mode, _SYSTEM, user, job_id=job_id, max_tokens=3000)
+    return gw.chat_json("outline", mode, _SYSTEM, user, job_id=job_id, max_tokens=3000,
+                        model_override=model_override)
 
 
 def plan_slides(gw: LLMGateway, mode: str, outline: list[dict], chapters: list[dict],
-                target_pages: int, job_id: int) -> dict:
+                target_pages: int, job_id: int, model_override: str | None = None) -> dict:
     """标准/专业模式：大纲 → 逐页规划。"""
     outline_text = "\n".join(
         f"{i + 1}. {o['chapter']}（正文{o['pages']}页）：{o.get('summary', '')}" for i, o in enumerate(outline))
@@ -101,4 +104,5 @@ def plan_slides(gw: LLMGateway, mode: str, outline: list[dict], chapters: list[d
 {{"slides": [{{"page": 页码, "chapter_idx": 章节序号从1开始(结构页填0),
              "type": "版式", "title": "页面标题", "key_message": "核心观点"}}]}}"""
     logger.info("调用页面规划 Agent：目标 %d 页", target_pages)
-    return gw.chat_json("outline", mode, _SYSTEM, user, job_id=job_id, max_tokens=3500)
+    return gw.chat_json("outline", mode, _SYSTEM, user, job_id=job_id, max_tokens=3500,
+                        model_override=model_override)

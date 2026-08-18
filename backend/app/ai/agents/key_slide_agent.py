@@ -55,6 +55,7 @@ def request_scene(
     contract: TemplateSpaceContract,
     adjacent_fingerprints: list[str],
     job_id: int,
+    model_override: str | None = None,
 ) -> dict:
     payload = {
         "page": page,
@@ -73,6 +74,7 @@ def request_scene(
         job_id=job_id,
         temperature=0.2,
         max_tokens=3500,
+        model_override=model_override,
     )
 
 

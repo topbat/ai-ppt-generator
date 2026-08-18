@@ -16,6 +16,7 @@ def err(code: int, message: str, data: Any = None) -> dict:
 class JobCreateReq(BaseModel):
     template_id: str = Field(description="模板 biz_id")
     document_id: str = Field(description="文档 biz_id")
+    model: str = Field(min_length=1, max_length=64, description="任务使用的模型")
     pages: int = Field(ge=5, le=100)
     mode: str = Field(default="fast", pattern="^(fast|standard|premium)$")
     density: str = Field(default="medium", pattern="^(low|medium|high)$")

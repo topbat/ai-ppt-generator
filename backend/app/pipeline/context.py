@@ -25,6 +25,7 @@ class JobContext:
     biz_id: str
     mode: str
     density: str
+    model: str
     target_pages: int
     template_pk: int
     document_pk: int
