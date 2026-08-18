@@ -9,7 +9,7 @@ import {
 
 
 describe('resolveInitialModel', () => {
-  const models = ['deepseek-v4', 'qwen3.7-plus', 'qwen3.8-max'];
+  const models = ['deepseek-v4-pro', 'qwen3.7-plus', 'qwen3.8-max'];
 
   it('uses the configured default when it belongs to the catalog', () => {
     expect(resolveInitialModel(models, 'qwen3.7-plus')).toBe('qwen3.7-plus');

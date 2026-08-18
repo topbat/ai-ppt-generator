@@ -1,3 +1,5 @@
+from pathlib import Path
+
 import pytest
 from pydantic import ValidationError
 
@@ -13,19 +15,34 @@ def _settings(**overrides) -> Settings:
     return Settings(_env_file=None, **overrides)
 
 
+def test_default_catalog_uses_actual_model_ids():
+    settings = _settings()
+
+    assert selectable_models(settings) == ["deepseek-v4-pro", "qwen3.7-plus", "qwen3.8-max"]
+    assert default_selectable_model(settings) == "qwen3.7-plus"
+
+
+def test_example_env_files_publish_actual_model_ids():
+    root = Path(__file__).resolve().parents[2]
+
+    for env_example in (root / "backend" / ".env.example", root / "deploy" / ".env.example"):
+        content = env_example.read_text(encoding="utf-8")
+        assert "LLM_SELECTABLE_MODELS=deepseek-v4-pro,qwen3.7-plus,qwen3.8-max" in content
+
+
 def test_selectable_models_are_environment_ordered_and_deduplicated():
     settings = _settings(
-        llm_selectable_models=" deepseek-v4, qwen3.7-plus,deepseek-v4,qwen3.8-max ",
+        llm_selectable_models=" deepseek-v4-pro, qwen3.7-plus,deepseek-v4-pro,qwen3.8-max ",
         llm_default_selectable_model="qwen3.7-plus",
     )
 
-    assert selectable_models(settings) == ["deepseek-v4", "qwen3.7-plus", "qwen3.8-max"]
+    assert selectable_models(settings) == ["deepseek-v4-pro", "qwen3.7-plus", "qwen3.8-max"]
     assert default_selectable_model(settings) == "qwen3.7-plus"
 
 
 def test_default_model_must_be_in_environment_catalog():
     settings = _settings(
-        llm_selectable_models="deepseek-v4,qwen3.7-plus",
+        llm_selectable_models="deepseek-v4-pro,qwen3.7-plus",
         llm_default_selectable_model="qwen3.8-max",
     )
 
@@ -35,7 +52,7 @@ def test_default_model_must_be_in_environment_catalog():
 
 def test_submitted_model_must_match_environment_catalog():
     settings = _settings(
-        llm_selectable_models="deepseek-v4,qwen3.7-plus,qwen3.8-max",
+        llm_selectable_models="deepseek-v4-pro,qwen3.7-plus,qwen3.8-max",
         llm_default_selectable_model="qwen3.7-plus",
     )
 
@@ -67,7 +84,7 @@ def test_normal_job_model_is_persisted_and_migrated():
 
 def test_normal_job_options_come_from_environment(monkeypatch):
     settings = _settings(
-        llm_selectable_models="deepseek-v4,qwen3.7-plus,qwen3.8-max",
+        llm_selectable_models="deepseek-v4-pro,qwen3.7-plus,qwen3.8-max",
         llm_default_selectable_model="qwen3.7-plus",
     )
     monkeypatch.setattr(jobs_api, "get_settings", lambda: settings)
@@ -75,7 +92,7 @@ def test_normal_job_options_come_from_environment(monkeypatch):
     result = jobs_api.get_options()
 
     assert result["data"] == {
-        "models": ["deepseek-v4", "qwen3.7-plus", "qwen3.8-max"],
+        "models": ["deepseek-v4-pro", "qwen3.7-plus", "qwen3.8-max"],
         "default_model": "qwen3.7-plus",
     }
 
@@ -83,9 +100,9 @@ def test_normal_job_options_come_from_environment(monkeypatch):
 def test_gateway_model_override_retries_only_selected_model():
     gateway = LLMGateway()
 
-    assert gateway._route("outline", "premium", "deepseek-v4") == [
-        ("deepseek", "deepseek-v4"),
-        ("deepseek", "deepseek-v4"),
+    assert gateway._route("outline", "premium", "deepseek-v4-pro") == [
+        ("deepseek", "deepseek-v4-pro"),
+        ("deepseek", "deepseek-v4-pro"),
     ]
     assert gateway._route("page_content", "fast", "qwen3.8-max") == [
         ("qwen", "qwen3.8-max"),

@@ -1035,7 +1035,7 @@ volumes: {pgdata: {}, redisdata: {}, miniodata: {}, pptmaster-projects: {}}
 QWEN_API_KEY=...            QWEN_BASE_URL=https://dashscope.aliyuncs.com/compatible-mode/v1
 DEEPSEEK_API_KEY=...        DEEPSEEK_BASE_URL=https://api.deepseek.com
 LLM_MAX_CONCURRENCY_PER_PROVIDER=8
-LLM_SELECTABLE_MODELS=deepseek-v4,qwen3.7-plus,qwen3.8-max
+LLM_SELECTABLE_MODELS=deepseek-v4-pro,qwen3.7-plus,qwen3.8-max
 LLM_DEFAULT_SELECTABLE_MODEL=qwen3.7-plus
 # 存储
 STORAGE_BACKEND=minio                       # minio | oss

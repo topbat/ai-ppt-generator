@@ -43,7 +43,7 @@ class Settings(BaseSettings):
     llm_model_reasoner: str = "deepseek-reasoner"  # 复杂推理（专业模式大纲/修复）
     llm_model_fallback: str = "deepseek-chat"   # 备用通道（主通道失败自动切换）
     llm_model_vision: str = "qwen-vl-max"       # Vision QA（专业模式视觉审查）
-    llm_selectable_models: str = "deepseek-v4,qwen3.7-plus,qwen3.8-max"
+    llm_selectable_models: str = "deepseek-v4-pro,qwen3.7-plus,qwen3.8-max"
     llm_default_selectable_model: str = "qwen3.7-plus"
 
     # ---- 任务控制 ----

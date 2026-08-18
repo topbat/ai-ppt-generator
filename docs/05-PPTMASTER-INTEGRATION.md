@@ -93,7 +93,7 @@ ppt-master 不是库，而是运行在 coding agent（Claude Code / Codex / Curs
 Set-Location .\deploy
 if (-not (Test-Path .env)) { Copy-Item .env.example .env }
 # 编辑 .env：主链路配置 QWEN/DEEPSEEK；真实 ppt-master 配置 Agent Key、模型与兼容端点
-# 模型目录：LLM_SELECTABLE_MODELS=deepseek-v4,qwen3.7-plus,qwen3.8-max
+# 模型目录（实际 model_id）：LLM_SELECTABLE_MODELS=deepseek-v4-pro,qwen3.7-plus,qwen3.8-max
 # 默认模型：LLM_DEFAULT_SELECTABLE_MODEL=qwen3.7-plus
 # 并发上限：PPTMASTER_MAX_CONCURRENT_JOBS=3
 # 百炼示例：PPTMASTER_CLAUDE_MODEL=qwen3.7-plus
