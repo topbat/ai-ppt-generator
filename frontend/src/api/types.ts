@@ -266,6 +266,17 @@ export interface VisualReport {
   pages?: VisualPageScore[];
 }
 
+export interface CompositionReport {
+  margin_violations: number;
+  typography_violations: number;
+  adjacent_fingerprint_duplicates: number;
+  dominant_family_ratio: number;
+  deck_rhythm_score: number;
+  key_slides_selected: number[];
+  key_slides_applied: number[];
+  key_slides_fallback: number[];
+}
+
 export interface QualityReport {
   status: string;
   score?: number;
@@ -274,6 +285,7 @@ export interface QualityReport {
   checks?: Record<string, unknown>;
   issues?: ReportIssue[];
   visual?: VisualReport;
+  composition?: CompositionReport;
 }
 
 /** ---------- 管理统计 ---------- */
