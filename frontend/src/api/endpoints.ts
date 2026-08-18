@@ -10,6 +10,7 @@ import type {
   JobDetail,
   JobListResult,
   JobMode,
+  JobOptions,
   JobOutput,
   JobStatus,
   PptMasterJobDetail,
@@ -47,6 +48,7 @@ export const documentApi = {
 
 /** ---------- 任务 ---------- */
 export const jobApi = {
+  options: () => get<JobOptions>('/jobs/options'),
   create: (params: CreateJobParams) => post<{ job_id: string }>('/jobs', params),
   list: (params: {
     status?: JobStatus | '';

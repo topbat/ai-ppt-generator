@@ -157,6 +157,7 @@ export interface JobDetail {
   status: JobStatus;
   mode: JobMode;
   density: Density;
+  model?: string | null;
   target_pages: number;
   progress: number; // 0~100
   current_stage?: string | null;
@@ -192,10 +193,16 @@ export interface JobListResult {
 export interface CreateJobParams {
   template_id: string;
   document_id: string;
+  model: string;
   pages: number;
   mode: JobMode;
   density: Density;
   options?: Record<string, unknown>;
+}
+
+export interface JobOptions {
+  models: string[];
+  default_model: string;
 }
 
 /** ---------- 页面 ---------- */

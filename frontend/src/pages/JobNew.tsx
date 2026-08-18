@@ -12,6 +12,7 @@ import {
   Popconfirm,
   Radio,
   Row,
+  Select,
   Slider,
   Space,
   Spin,
@@ -42,6 +43,7 @@ import type { Density, DocumentItem, JobMode, TemplateItem } from '../api/types'
 import ImgWithFallback from '../components/ImgWithFallback';
 import { MODE_CONFIG } from '../utils/constants';
 import { estimateRangeText, formatTime, suggestPagesRange } from '../utils/format';
+import { resolveInitialModel } from '../utils/modelOptions';
 
 const POLL_MS = 2000; // 解析状态轮询间隔
 
@@ -91,6 +93,28 @@ export default function JobNew() {
   const [pages, setPages] = useState(16);
   const [mode, setMode] = useState<JobMode>('fast');
   const [density, setDensity] = useState<Density>('medium');
+  const [models, setModels] = useState<string[]>([]);
+  const [model, setModel] = useState('');
+
+  useEffect(() => {
+    let disposed = false;
+    void (async () => {
+      try {
+        const options = await jobApi.options();
+        if (disposed) return;
+        setModels(options.models);
+        setModel(resolveInitialModel(options.models, options.default_model));
+      } catch {
+        if (!disposed) {
+          setModels([]);
+          setModel('');
+        }
+      }
+    })();
+    return () => {
+      disposed = true;
+    };
+  }, []);
 
   /** 加载模板列表 */
   const loadTemplates = useCallback(async (silent = false) => {
@@ -219,6 +243,7 @@ export default function JobNew() {
         pages,
         mode,
         density,
+        model,
       });
       message.success('任务已提交');
       navigate(`/jobs/${res.job_id}`);
@@ -603,6 +628,9 @@ export default function JobNew() {
             setMode={setMode}
             density={density}
             setDensity={setDensity}
+            models={models}
+            model={model}
+            setModel={setModel}
             suggestRange={suggestRange}
             submitting={submitting}
             onPrev={() => setStep(1)}
@@ -731,6 +759,9 @@ function Step3Settings({
   setMode,
   density,
   setDensity,
+  models,
+  model,
+  setModel,
   suggestRange,
   submitting,
   onPrev,
@@ -742,6 +773,9 @@ function Step3Settings({
   setMode: (v: JobMode) => void;
   density: Density;
   setDensity: (v: Density) => void;
+  models: string[];
+  model: string;
+  setModel: (v: string) => void;
   suggestRange: [number, number] | null;
   submitting: boolean;
   onPrev: () => void;
@@ -778,6 +812,20 @@ function Step3Settings({
             根据资料量推荐 {suggestRange[0]}～{suggestRange[1]} 页
           </Typography.Text>
         )}
+      </div>
+
+      <div>
+        <Typography.Title level={5}>生成模型</Typography.Title>
+        <Select
+          value={model || undefined}
+          onChange={setModel}
+          loading={models.length === 0}
+          placeholder="请选择生成模型"
+          options={models.map((item) => ({ value: item, label: item }))}
+          style={{ width: '100%', maxWidth: 360 }}
+        />
+        <br />
+        <Typography.Text type="secondary">模型选项由后端环境配置提供，并应用于整条生成任务。</Typography.Text>
       </div>
 
       {/* 生成模式三选卡片 */}
@@ -842,6 +890,7 @@ function Step3Settings({
           size="large"
           icon={<RocketOutlined />}
           loading={submitting}
+          disabled={!model}
           onClick={onSubmit}
         >
           开始生成
