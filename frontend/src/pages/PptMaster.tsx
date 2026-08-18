@@ -56,6 +56,7 @@ import { formatDuration, formatTime } from '../utils/format';
 import {
   isTemplateStyleLocked,
   resolveInitialModel,
+  resolvePptMasterModel,
   resolvePptMasterStyle,
   stageTooltipText,
 } from '../utils/modelOptions';
@@ -601,6 +602,19 @@ function SubmitForm({
     const current = form.getFieldValue('style') as string | undefined;
     form.setFieldValue('style', resolvePptMasterStyle(routeKey, current || 'auto'));
   }, [routeKey, form]);
+
+  // 美化路线默认使用 Kimi；用户仍可在模型下拉框中改选其他 model-id。
+  useEffect(() => {
+    form.setFieldValue(
+      'model',
+      resolvePptMasterModel(
+        routeKey,
+        options.models,
+        options.default_model,
+        options.beautify_model,
+      ),
+    );
+  }, [routeKey, options.models, options.default_model, options.beautify_model, form]);
 
   // 环境告警：仓库未就绪 / 无可用真实 Agent
   const noRealAgent = !options.agents.some((a) => a.available && a.key !== 'mock');

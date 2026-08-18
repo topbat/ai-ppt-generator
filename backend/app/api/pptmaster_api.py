@@ -23,8 +23,8 @@ from sqlalchemy import func, select
 from sqlalchemy.orm import Session
 
 from app.api.object_response import object_response
-from app.core.config import (default_selectable_model, get_settings, selectable_models,
-                             validate_selectable_model)
+from app.core.config import (beautify_selectable_model, default_selectable_model, get_settings,
+                             selectable_models, validate_selectable_model)
 from app.core.database import get_db
 from app.core.ids import new_biz_id
 from app.core.logging import get_logger
@@ -135,6 +135,7 @@ def get_options():
         "default_agent": default_agent,
         "models": selectable_models(s),
         "default_model": default_selectable_model(s),
+        "beautify_model": beautify_selectable_model(s),
         "input_modes": catalog.INPUT_MODES,
         "routes": catalog.ROUTES,
         "profiles": catalog.PROFILES,

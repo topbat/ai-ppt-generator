@@ -203,6 +203,7 @@ export interface CreateJobParams {
 export interface JobOptions {
   models: string[];
   default_model: string;
+  beautify_model: string;
 }
 
 /** ---------- 页面 ---------- */
@@ -384,6 +385,7 @@ export interface PptMasterOptions {
   default_agent: string;
   models: string[];
   default_model: string;
+  beautify_model: string;
   /** files 上传源文件 / topic 仅主题 / text 粘贴文本 / url 网页链接 */
   input_modes: OptionItem[];
   /** generate / template_fill / beautify / enhance / image_to_pptx / create_template */

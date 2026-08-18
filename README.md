@@ -17,7 +17,7 @@
 ```bash
 cd deploy
 cp .env.example .env
-# 编辑 .env：至少填入 QWEN_API_KEY 或 DEEPSEEK_API_KEY
+# 编辑 .env：至少填入 QWEN_API_KEY、DEEPSEEK_API_KEY 或 KIMI_API_KEY
 # （没有 Key 想先跑通链路：把 LLM_MOCK=true）
 # 部署到服务器时：S3_PUBLIC_ENDPOINT 改为 http://<服务器IP>:9000
 
@@ -63,8 +63,9 @@ docker compose ps -a
 
 ```dotenv
 # 真实 Claude Code + 阿里云百炼（推荐示例）
-LLM_SELECTABLE_MODELS=deepseek-v4-pro,qwen3.7-plus,qwen3.8-max
+LLM_SELECTABLE_MODELS=deepseek-v4-pro,kimi-k3,qwen3.7-plus,qwen3.8-max
 LLM_DEFAULT_SELECTABLE_MODEL=qwen3.7-plus
+LLM_BEAUTIFY_MODEL=kimi-k3
 PPTMASTER_DEFAULT_AGENT=auto
 PPTMASTER_CLAUDE_MODEL=qwen3.7-plus
 PPTMASTER_MAX_CONCURRENT_JOBS=3

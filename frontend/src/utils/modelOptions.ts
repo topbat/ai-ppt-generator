@@ -8,6 +8,15 @@ export function resolveInitialModel(models: string[], defaultModel: string): str
   return defaultModel;
 }
 
+export function resolvePptMasterModel(
+  route: string,
+  models: string[],
+  defaultModel: string,
+  beautifyModel: string,
+): string {
+  return resolveInitialModel(models, route === 'beautify' ? beautifyModel : defaultModel);
+}
+
 export function isTemplateStyleLocked(route: string): boolean {
   return route === 'template_fill';
 }

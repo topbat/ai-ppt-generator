@@ -26,25 +26,28 @@ class Settings(BaseSettings):
     s3_region: str = "us-east-1"
     presign_expires: int = 3600
 
-    # ---- LLM: 国内模型优先 (Qwen + DeepSeek) ----
+    # ---- LLM: 国内模型优先 (Qwen + DeepSeek + Kimi) ----
     qwen_api_key: str = ""
     qwen_base_url: str = "https://dashscope.aliyuncs.com/compatible-mode/v1"
     deepseek_api_key: str = ""
     deepseek_base_url: str = "https://api.deepseek.com"
+    kimi_api_key: str = ""
+    kimi_base_url: str = "https://api.moonshot.cn/v1"
     llm_max_concurrency_per_provider: int = 8   # Provider 级并发信号量(多任务共享)
     llm_timeout_seconds: int = 90
     llm_max_retries: int = 2                    # 单次调用重试上限(含切换备用 Provider)
     llm_mock: bool = False                      # 无 API Key 时可开启, 用于本地联调
 
-    # ---- 具体模型选择（按模型名前缀自动识别 Provider：deepseek* → DeepSeek，其余 → Qwen）----
+    # ---- 具体模型选择（deepseek* / kimi* 按前缀路由，其余 → Qwen）----
     llm_model_fast: str = "qwen-flash"          # 极速模式主力（页面文案/摘要）
     llm_model_standard: str = "qwen-plus"       # 标准模式主力
     llm_model_premium: str = "qwen-max"         # 专业模式主力
     llm_model_reasoner: str = "deepseek-reasoner"  # 复杂推理（专业模式大纲/修复）
     llm_model_fallback: str = "deepseek-chat"   # 备用通道（主通道失败自动切换）
     llm_model_vision: str = "qwen-vl-max"       # Vision QA（专业模式视觉审查）
-    llm_selectable_models: str = "deepseek-v4-pro,qwen3.7-plus,qwen3.8-max"
+    llm_selectable_models: str = "deepseek-v4-pro,kimi-k3,qwen3.7-plus,qwen3.8-max"
     llm_default_selectable_model: str = "qwen3.7-plus"
+    llm_beautify_model: str = "kimi-k3"
 
     # ---- 任务控制 ----
     job_timeout_fast: int = 300
@@ -119,6 +122,14 @@ def default_selectable_model(settings: Settings | None = None) -> str:
     if default not in selectable_models(current):
         raise ValueError(f"默认模型 {default or '<empty>'} 不在 LLM_SELECTABLE_MODELS 中")
     return default
+
+
+def beautify_selectable_model(settings: Settings | None = None) -> str:
+    current = settings or get_settings()
+    model = current.llm_beautify_model.strip()
+    if model not in selectable_models(current):
+        raise ValueError(f"美化模型 {model or '<empty>'} 不在 LLM_SELECTABLE_MODELS 中")
+    return model
 
 
 def validate_selectable_model(model: str | None, settings: Settings | None = None) -> str:

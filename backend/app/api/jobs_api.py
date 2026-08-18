@@ -6,8 +6,8 @@ from sqlalchemy import func, select
 from sqlalchemy.orm import Session
 
 from app.api.object_response import object_response
-from app.core.config import (default_selectable_model, get_settings, selectable_models,
-                             validate_selectable_model)
+from app.core.config import (beautify_selectable_model, default_selectable_model, get_settings,
+                             selectable_models, validate_selectable_model)
 from app.core.database import get_db
 from app.core.errors import ERRORS
 from app.core.ids import new_biz_id
@@ -87,6 +87,7 @@ def get_options():
     return ok({
         "models": selectable_models(settings),
         "default_model": default_selectable_model(settings),
+        "beautify_model": beautify_selectable_model(settings),
     })
 
 

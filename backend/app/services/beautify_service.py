@@ -9,6 +9,7 @@
 """
 from sqlalchemy.orm import Session
 
+from app.core.config import beautify_selectable_model
 from app.core.ids import new_biz_id
 from app.core.logging import get_logger
 from app.models.models import GenerationJob, JobSlide, JobStage
@@ -48,7 +49,7 @@ def fork_job_for_beautify(db: Session, parent: GenerationJob) -> GenerationJob:
     child = GenerationJob(
         biz_id=new_biz_id("ppt"), template_id=parent.template_id,
         document_id=parent.document_id, target_pages=parent.target_pages,
-        mode=child_mode, density=parent.density, model=parent.model,
+        mode=child_mode, density=parent.density, model=beautify_selectable_model(),
         options={**(parent.options or {}), "beautify_of": parent.biz_id},
         status="pending", parent_job_id=parent.id, version_no=parent.version_no + 1)
     db.add(child)

@@ -215,8 +215,9 @@ def test_options_reports_worker_managed_capabilities():
         pptmaster_execution_scope="worker", pptmaster_default_agent="auto",
         pptmaster_max_files=10, pptmaster_max_upload_mb=200,
         pptmaster_timeout_minutes=40, pptmaster_timeout_max_minutes=120,
-        llm_selectable_models="deepseek-v4-pro,qwen3.7-plus,qwen3.8-max",
+        llm_selectable_models="deepseek-v4-pro,kimi-k3,qwen3.7-plus,qwen3.8-max",
         llm_default_selectable_model="qwen3.7-plus",
+        llm_beautify_model="kimi-k3",
         pptmaster_max_concurrent_jobs=3,
     )
     unavailable = [
@@ -242,8 +243,9 @@ def test_options_reports_worker_managed_capabilities():
     assert data["repo"].get("delegated") is True
     assert agents["claude"]["available"] is True
     assert data["default_agent"] == "claude"
-    assert data["models"] == ["deepseek-v4-pro", "qwen3.7-plus", "qwen3.8-max"]
+    assert data["models"] == ["deepseek-v4-pro", "kimi-k3", "qwen3.7-plus", "qwen3.8-max"]
     assert data["default_model"] == "qwen3.7-plus"
+    assert data["beautify_model"] == "kimi-k3"
     assert data["limits"]["max_concurrent_jobs"] == 3
     print("[ok] options reports worker-managed capabilities")
 

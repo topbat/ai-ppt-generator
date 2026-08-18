@@ -2,6 +2,7 @@ import { describe, expect, it } from 'vitest';
 
 import {
   isTemplateStyleLocked,
+  resolvePptMasterModel,
   resolveInitialModel,
   resolvePptMasterStyle,
   stageTooltipText,
@@ -9,7 +10,7 @@ import {
 
 
 describe('resolveInitialModel', () => {
-  const models = ['deepseek-v4-pro', 'qwen3.7-plus', 'qwen3.8-max'];
+  const models = ['deepseek-v4-pro', 'kimi-k3', 'qwen3.7-plus', 'qwen3.8-max'];
 
   it('uses the configured default when it belongs to the catalog', () => {
     expect(resolveInitialModel(models, 'qwen3.7-plus')).toBe('qwen3.7-plus');
@@ -18,6 +19,19 @@ describe('resolveInitialModel', () => {
   it('rejects an absent or unknown configured default', () => {
     expect(() => resolveInitialModel(models, 'qwen-max')).toThrow('默认模型');
     expect(() => resolveInitialModel([], 'qwen3.7-plus')).toThrow('可选模型');
+  });
+});
+
+
+describe('resolvePptMasterModel', () => {
+  const models = ['deepseek-v4-pro', 'kimi-k3', 'qwen3.7-plus', 'qwen3.8-max'];
+
+  it('defaults the beautify route to kimi-k3', () => {
+    expect(resolvePptMasterModel('beautify', models, 'qwen3.7-plus', 'kimi-k3')).toBe('kimi-k3');
+  });
+
+  it('uses the normal configured default on non-beautify routes', () => {
+    expect(resolvePptMasterModel('generate', models, 'qwen3.7-plus', 'kimi-k3')).toBe('qwen3.7-plus');
   });
 });
 

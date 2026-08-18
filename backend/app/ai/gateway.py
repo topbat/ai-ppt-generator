@@ -1,4 +1,4 @@
-"""LLM Gateway：Qwen(DashScope 兼容口) + DeepSeek 统一接入。
+"""LLM Gateway：Qwen、DeepSeek 与 Kimi 的 OpenAI 兼容接口统一接入。
 
 职责（对应文档 §3.3）：
 1. 路由：task_type + mode → (provider, model)，配置化；
@@ -22,8 +22,13 @@ from app.core.logging import ctx_stage, get_logger
 logger = get_logger(__name__)
 
 def provider_of(model: str) -> str:
-    """按模型名前缀识别 Provider：deepseek* → deepseek，其余 → qwen(DashScope)。"""
-    return "deepseek" if model.lower().startswith("deepseek") else "qwen"
+    """按模型名前缀识别 Provider；未识别的模型走 Qwen(DashScope)。"""
+    normalized = model.lower()
+    if normalized.startswith("deepseek"):
+        return "deepseek"
+    if normalized.startswith("kimi"):
+        return "kimi"
+    return "qwen"
 
 
 def build_routes() -> dict[str, dict]:
@@ -86,8 +91,9 @@ class LLMGateway:
         self._semaphores = {
             "qwen": threading.Semaphore(s.llm_max_concurrency_per_provider),
             "deepseek": threading.Semaphore(s.llm_max_concurrency_per_provider),
+            "kimi": threading.Semaphore(s.llm_max_concurrency_per_provider),
         }
-        self._breakers = {"qwen": _Breaker(), "deepseek": _Breaker()}
+        self._breakers = {"qwen": _Breaker(), "deepseek": _Breaker(), "kimi": _Breaker()}
         self.routes = build_routes()
         logger.info("LLM 路由初始化：极速=%s 标准=%s 专业=%s 推理=%s 备用=%s",
                     s.llm_model_fast, s.llm_model_standard, s.llm_model_premium,
@@ -101,6 +107,9 @@ class LLMGateway:
                                                  timeout=s.llm_timeout_seconds)
             elif provider == "deepseek":
                 self._clients[provider] = OpenAI(api_key=s.deepseek_api_key, base_url=s.deepseek_base_url,
+                                                 timeout=s.llm_timeout_seconds)
+            elif provider == "kimi":
+                self._clients[provider] = OpenAI(api_key=s.kimi_api_key, base_url=s.kimi_base_url,
                                                  timeout=s.llm_timeout_seconds)
             else:
                 raise PPTError("E3001", f"未知 Provider: {provider}")
@@ -261,7 +270,7 @@ def _mock_response(task_type: str, user: str) -> str:
         slides = [{"page": p, "type": "title_content", "title": f"Mock 页面 {p}", "subtitle": None,
                    "elements": [{"type": "bullet_group",
                                  "items": ["Mock 模式占位要点（未配置 LLM Key）",
-                                           "配置 QWEN_API_KEY 或 DEEPSEEK_API_KEY 后生成真实内容"]}]}
+                                           "配置 QWEN_API_KEY、DEEPSEEK_API_KEY 或 KIMI_API_KEY 后生成真实内容"]}]}
                   for p in page_nos] or [{"page": 1, "type": "title_content", "title": "Mock",
                                           "elements": []}]
         # generate_page 期望单页对象；generate_chapter_batch 期望 {"slides": [...]}
