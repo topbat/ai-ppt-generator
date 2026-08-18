@@ -1,6 +1,11 @@
 import { describe, expect, it } from 'vitest';
 
-import { isTemplateStyleLocked, resolveInitialModel, resolvePptMasterStyle } from './modelOptions';
+import {
+  isTemplateStyleLocked,
+  resolveInitialModel,
+  resolvePptMasterStyle,
+  stageTooltipText,
+} from './modelOptions';
 
 
 describe('resolveInitialModel', () => {
@@ -26,5 +31,18 @@ describe('PPT-MASTER template style lock', () => {
   it('preserves user style on other routes', () => {
     expect(isTemplateStyleLocked('generate')).toBe(false);
     expect(resolvePptMasterStyle('generate', 'swiss-minimal')).toBe('swiss-minimal');
+  });
+});
+
+
+describe('stageTooltipText', () => {
+  it('shows the complete stage path with arrows', () => {
+    expect(stageTooltipText(['准备工作区', '启动 Agent', '生成 SVG'])).toBe(
+      '准备工作区 --> 启动 Agent --> 生成 SVG',
+    );
+  });
+
+  it('falls back to the current stage when history is empty', () => {
+    expect(stageTooltipText([], '排队中')).toBe('排队中');
   });
 });

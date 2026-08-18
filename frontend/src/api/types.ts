@@ -433,6 +433,8 @@ export interface PptMasterJob {
   progress: number;
   /** 当前阶段中文描述 */
   stage: string | null;
+  /** 从排队到当前的完整阶段轨迹 */
+  stage_history: string[];
   /** 提交时的全部参数（原样） */
   params: Record<string, unknown>;
   source_files: { name: string; size: number }[];

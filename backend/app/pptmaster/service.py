@@ -142,11 +142,27 @@ def _now():
     return datetime.now(timezone.utc)
 
 
+def _append_stage_history(params: dict | None, stage: str | None) -> dict:
+    updated = dict(params or {})
+    history = [str(item) for item in (updated.get("_stage_history") or []) if str(item).strip()]
+    current = (stage or "").strip()
+    if current and (not history or history[-1] != current):
+        history.append(current)
+    updated["_stage_history"] = history[-60:]
+    return updated
+
+
 def _update(job_pk: int, **fields) -> None:
     with db_session() as db:
         job = db.get(PptMasterJob, job_pk)
         if job is None:
             return
+        if "params" in fields:
+            incoming = dict(fields["params"] or {})
+            incoming.setdefault("_stage_history", list((job.params or {}).get("_stage_history") or []))
+            fields["params"] = incoming
+        if fields.get("stage"):
+            fields["params"] = _append_stage_history(fields.get("params", job.params), fields["stage"])
         for k, v in fields.items():
             setattr(job, k, v)
 
@@ -408,6 +424,7 @@ def run_pptmaster_job(job_pk: int) -> None:
         job.started_at = _now()
         job.progress = 2
         job.stage = "准备工作区"
+        job.params = _append_stage_history(params, job.stage)
         job.error_message = None
 
     started = time.monotonic()

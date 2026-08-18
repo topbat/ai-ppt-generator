@@ -24,6 +24,7 @@ import {
   Spin,
   Table,
   Tag,
+  Tooltip,
   Typography,
   Upload,
   message,
@@ -56,6 +57,7 @@ import {
   isTemplateStyleLocked,
   resolveInitialModel,
   resolvePptMasterStyle,
+  stageTooltipText,
 } from '../utils/modelOptions';
 
 const PAGE_SIZE = 10;
@@ -333,16 +335,14 @@ export default function PptMaster() {
         title: 'Agent',
         dataIndex: 'agent',
         width: 100,
-        render: (agent: string, r) => (
-          <Space direction="vertical" size={0}>
-            <span>{AGENT_SHORT[agent] ?? agent}</span>
-            {r.model && (
-              <Typography.Text type="secondary" style={{ fontSize: 12 }}>
-                {r.model}
-              </Typography.Text>
-            )}
-          </Space>
-        ),
+        render: (agent: string) => <span>{AGENT_SHORT[agent] ?? agent}</span>,
+      },
+      {
+        title: '模型',
+        dataIndex: 'model',
+        width: 140,
+        ellipsis: true,
+        render: (model: string | null) => model || '-',
       },
       {
         title: '状态',
@@ -360,9 +360,14 @@ export default function PptMaster() {
                   style={{ margin: 0 }}
                 />
                 {r.stage && (
-                  <Typography.Text type="secondary" style={{ fontSize: 12 }} ellipsis title={r.stage}>
-                    {r.stage}
-                  </Typography.Text>
+                  <Tooltip
+                    title={stageTooltipText(r.stage_history, r.stage)}
+                    overlayStyle={{ maxWidth: 720 }}
+                  >
+                    <Typography.Text type="secondary" style={{ fontSize: 12 }} ellipsis>
+                      {r.stage}
+                    </Typography.Text>
+                  </Tooltip>
                 )}
               </>
             )}

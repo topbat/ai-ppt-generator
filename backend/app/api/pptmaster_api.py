@@ -78,11 +78,13 @@ def _dto(j: PptMasterJob, detail: bool = False) -> dict:
     previews = j.preview_keys or []
     params = dict(j.params or {})
     run_info = params.pop("_run", None)
+    stage_history = params.pop("_stage_history", [])
     d = {
         "job_id": j.biz_id, "title": j.title,
         "input_mode": j.input_mode, "route": j.route, "profile": j.profile,
         "agent": j.agent, "model": j.model,
         "status": j.status, "progress": j.progress or 0, "stage": j.stage,
+        "stage_history": stage_history,
         "params": params,
         "source_files": [{"name": f.get("name"), "size": f.get("size")} for f in (j.source_files or [])],
         "template_name": j.template_name,

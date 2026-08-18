@@ -333,6 +333,27 @@ def test_progress_heuristics():
         shutil.rmtree(tmp, ignore_errors=True)
 
 
+def test_stage_history_is_deduplicated_and_exposed_by_dto():
+    from app.api.pptmaster_api import _dto
+
+    params = {}
+    params = pptmaster_service._append_stage_history(params, "准备工作区")
+    params = pptmaster_service._append_stage_history(params, "准备工作区")
+    params = pptmaster_service._append_stage_history(params, "启动 Agent")
+    assert params["_stage_history"] == ["准备工作区", "启动 Agent"]
+
+    job = SimpleNamespace(
+        biz_id="pm_history", title="history", input_mode="topic", route="generate", profile="quick",
+        agent="claude", model="qwen3.7-plus", status="running", progress=20, stage="启动 Agent",
+        params=params, source_files=[], template_name=None, outputs=[], preview_keys=[],
+        page_count=None, file_size=None, error_message=None, created_at=None, started_at=None,
+        finished_at=None, duration_ms=None, prompt="", log_tail="",
+    )
+    data = _dto(job)
+    assert data["stage_history"] == ["准备工作区", "启动 Agent"]
+    assert "_stage_history" not in data["params"]
+
+
 if __name__ == "__main__":
     test_catalog()
     test_prompt()
@@ -344,4 +365,5 @@ if __name__ == "__main__":
     test_pptmaster_image_runs_as_non_root()
     test_mock_end_to_end()
     test_progress_heuristics()
+    test_stage_history_is_deduplicated_and_exposed_by_dto()
     print("ALL PASSED")

@@ -16,3 +16,9 @@ export function resolvePptMasterStyle(route: string, currentStyle: string): stri
   if (isTemplateStyleLocked(route)) return 'template';
   return currentStyle === 'template' ? 'auto' : currentStyle;
 }
+
+export function stageTooltipText(history: string[] | undefined, currentStage?: string): string {
+  const stages = (history ?? []).filter((item) => item.trim().length > 0);
+  if (stages.length > 0) return stages.join(' --> ');
+  return currentStage ?? '';
+}
