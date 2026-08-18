@@ -244,6 +244,7 @@ def test_options_reports_worker_managed_capabilities():
     assert data["default_agent"] == "claude"
     assert data["models"] == ["deepseek-v4", "qwen3.7-plus", "qwen3.8-max"]
     assert data["default_model"] == "qwen3.7-plus"
+    assert data["limits"]["max_concurrent_jobs"] == 3
     print("[ok] options reports worker-managed capabilities")
 
 
@@ -267,6 +268,19 @@ def test_pptmaster_image_runs_as_non_root():
     assert "USER pptmaster" in stage, \
         "pptmaster-worker 必须以非 root 用户运行，否则 Claude Code 会拒绝 --dangerously-skip-permissions"
     print("[ok] pptmaster-worker runs as non-root")
+
+
+def test_pptmaster_worker_concurrency_is_environment_capped_at_three():
+    from app.core.config import Settings
+
+    settings = Settings(_env_file=None)
+    assert settings.pptmaster_max_concurrent_jobs == 3
+    dockerfile = (Path(__file__).resolve().parents[1] / "Dockerfile").read_text(encoding="utf-8")
+    stage = dockerfile.split("FROM worker-base AS pptmaster-worker", 1)[1]
+    assert "${PPTMASTER_MAX_CONCURRENT_JOBS:-3}" in stage
+    assert '"-c", "1"' not in stage
+    worker_source = (Path(__file__).resolve().parents[1] / "app" / "worker.py").read_text(encoding="utf-8")
+    assert "worker_prefetch_multiplier=1" in worker_source
 
 
 def test_mock_end_to_end():
@@ -363,6 +377,7 @@ if __name__ == "__main__":
     test_options_reports_worker_managed_capabilities()
     test_agent_env_normalizes_anthropic_base_url()
     test_pptmaster_image_runs_as_non_root()
+    test_pptmaster_worker_concurrency_is_environment_capped_at_three()
     test_mock_end_to_end()
     test_progress_heuristics()
     test_stage_history_is_deduplicated_and_exposed_by_dto()

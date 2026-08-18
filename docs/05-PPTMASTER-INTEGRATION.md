@@ -48,12 +48,12 @@ ppt-master 不是库，而是运行在 coding agent（Claude Code / Codex / Curs
 | route | generate / template_fill / beautify / enhance / image_to_pptx(仅 codex) / create_template | Generate PPTX / Fill Native PPTX / beautify-pptx profile / Enhance Native PPTX / image-to-pptx profile / Create Template |
 | profile | quick / default | quick-generate profile / 默认 Strategist→Executor（提示词要求自动锁定规格不确认） |
 | canvas | ppt169 ppt43 xiaohongshu moments story wechat banner a4 | `canvas-formats.md` |
-| style | auto + 18 内置 + custom | `references/visual-styles/` |
+| style | auto + template（模板路线锁定）+ 18 内置 + custom | `references/visual-styles/` |
 | narrative_mode | auto pyramid narrative instructional showcase briefing | `references/modes/` |
 | reading_mode | auto text balanced presentation | 正文字号档 |
 | language / image_source | auto zh en / auto none search ai | — / `image_search.py` `image_gen.py` |
 | 开关 | native_charts speaker_notes narration transitions animations | `--native-charts-and-tables` / notes / `notes_to_audio` / transitions / animations |
-| 执行 | agent(auto claude codex mock) model timeout_minutes | Runner 选择 |
+| 执行 | agent(auto claude codex mock) model timeout_minutes | Runner 选择；model 来自环境模型目录 |
 
 ## 4. 提示词契约（`prompt.py`）
 
@@ -82,6 +82,7 @@ ppt-master 不是库，而是运行在 coding agent（Claude Code / Codex / Curs
 - 容器：`backend/Dockerfile` 目标 `pptmaster-worker` = worker-base + git + Node 20（二进制）+ `@anthropic-ai/claude-code` + `@openai/codex` + ppt-master 稀疏克隆 + 其 pip 依赖；compose 服务 `pptmaster-worker`（profile `pptmaster`，工作区卷 `pptmaster-projects`）。镜像最终切换到 UID/GID 10001 的 `pptmaster` 用户，因为 Claude Code 禁止 root 搭配 `--dangerously-skip-permissions`。
 - 凭据：Claude 使用 `ANTHROPIC_API_KEY`，或 `ANTHROPIC_AUTH_TOKEN` + 绝对 `ANTHROPIC_BASE_URL`；阿里云百炼 Workspace 地址必须写成 `https://<WorkspaceId>.cn-beijing.maas.aliyuncs.com/apps/anthropic`（不要追加 `/v1`）。Codex 使用 `OPENAI_API_KEY` 和支持 Responses API 的 Provider。图片搜索、AI 生图、TTS 等额外能力的 Key 必须通过 Worker 环境传入。
 - 费用护栏：`PPTMASTER_CLAUDE_MAX_BUDGET_USD`（`--max-budget-usd`）；每任务 `run.cost_usd / num_turns` 落库并在详情展示。
+- 并发与排队：`PPTMASTER_MAX_CONCURRENT_JOBS=3` 控制单个部署最多同时运行三个 Agent；Celery 预取为 1，更多任务继续接受并保留 `pending / 排队中`，待执行槽释放后自动运行。不要横向扩容 `pptmaster-worker` 绕过该部署级上限。
 - **注意**：Agent 以 `--dangerously-skip-permissions` / `--dangerously-bypass-approvals-and-sandbox` 运行（无人值守必需），生产环境应只在独立容器中运行 pptmaster-worker，不与业务 Worker 混跑。
 
 ### 6.1 本地容器启动
@@ -92,6 +93,9 @@ ppt-master 不是库，而是运行在 coding agent（Claude Code / Codex / Curs
 Set-Location .\deploy
 if (-not (Test-Path .env)) { Copy-Item .env.example .env }
 # 编辑 .env：主链路配置 QWEN/DEEPSEEK；真实 ppt-master 配置 Agent Key、模型与兼容端点
+# 模型目录：LLM_SELECTABLE_MODELS=deepseek-v4,qwen3.7-plus,qwen3.8-max
+# 默认模型：LLM_DEFAULT_SELECTABLE_MODEL=qwen3.7-plus
+# 并发上限：PPTMASTER_MAX_CONCURRENT_JOBS=3
 # 百炼示例：PPTMASTER_CLAUDE_MODEL=qwen3.7-plus
 #           ANTHROPIC_AUTH_TOKEN=<API Key>
 #           ANTHROPIC_BASE_URL=https://<WorkspaceId>.cn-beijing.maas.aliyuncs.com/apps/anthropic
@@ -118,4 +122,4 @@ docker compose exec -T pptmaster-worker sh -lc 'id && claude --version && codex 
 - 图片搜索/AI 生图、TTS 旁白依赖 ppt-master 侧的 Key 配置，未配置时 Agent 会按提示词退化并在最终回复说明；
 - `ANTHROPIC_BASE_URL` 必须是绝对 `http://` 或 `https://` URL；百炼 Workspace 端点必须包含 `/apps/anthropic`，只填主机名或 OpenAI 兼容路径会得到 404；
 - Worker 执行域下 API 只能从凭据判断“可能可用”，最终 CLI/仓库/模型可用性以 Worker 运行时二次校验及 Agent 日志为准；
-- 后续可加：Claude Agent SDK Runner、任务级并发上限、产物清理策略、工作区磁盘配额。
+- 后续可加：Claude Agent SDK Runner、跨多 Worker 的分布式并发租约、产物清理策略、工作区磁盘配额。

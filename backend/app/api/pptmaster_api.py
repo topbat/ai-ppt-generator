@@ -147,7 +147,8 @@ def get_options():
         "limits": {"max_files": s.pptmaster_max_files, "max_upload_mb": s.pptmaster_max_upload_mb,
                    "pages_min": 1, "pages_max": 60,
                    "timeout_minutes_default": s.pptmaster_timeout_minutes,
-                   "timeout_minutes_max": s.pptmaster_timeout_max_minutes},
+                   "timeout_minutes_max": s.pptmaster_timeout_max_minutes,
+                   "max_concurrent_jobs": s.pptmaster_max_concurrent_jobs},
         "accept_extensions": catalog.ACCEPT_EXTENSIONS,
     })
 

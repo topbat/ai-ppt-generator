@@ -95,8 +95,8 @@ RUN groupadd --gid 10001 pptmaster \
     && chown -R pptmaster:pptmaster /opt/ppt-master /home/pptmaster
 ENV PPTMASTER_REPO_DIR=/opt/ppt-master
 ENV HOME=/home/pptmaster
+ENV PPTMASTER_MAX_CONCURRENT_JOBS=3
 COPY --chown=pptmaster:pptmaster app ./app
 USER pptmaster
-# 并发 1：单个 Agent 会话本身已重（长时间占用 CPU/内存与模型配额）；需要更多并发时 --scale pptmaster-worker=N
-CMD ["celery", "-A", "app.worker", "worker", "-Q", "pptmaster", \
-     "-c", "1", "--max-tasks-per-child", "10", "--loglevel", "INFO"]
+# 单容器并发最多 3；多出的消息留在 Redis 队列，任务保持 pending，等待空闲执行槽。
+CMD ["sh", "-c", "exec celery -A app.worker worker -Q pptmaster -c \"${PPTMASTER_MAX_CONCURRENT_JOBS:-3}\" --max-tasks-per-child 10 --loglevel INFO"]

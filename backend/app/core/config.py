@@ -85,6 +85,7 @@ class Settings(BaseSettings):
     pptmaster_python_bin: str = ""                   # Agent 调用 python3 时使用的解释器（默认当前解释器）
     pptmaster_timeout_minutes: int = 40              # 单任务默认超时
     pptmaster_timeout_max_minutes: int = 120
+    pptmaster_max_concurrent_jobs: int = 3           # 单个部署最多同时运行的 ppt-master 任务
     pptmaster_max_upload_mb: int = 200
     pptmaster_max_files: int = 10
     pptmaster_claude_model: str = ""                 # 为空用 CLI 默认模型
