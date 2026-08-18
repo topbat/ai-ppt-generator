@@ -9,6 +9,8 @@ from app.pipeline.stages.assemble_stages import LayoutStage, MatchStage
 from app.pipeline.stages.base import Stage
 from app.pipeline.stages.beautify_stage import BeautifyStage
 from app.pipeline.stages.content_stage import ContentStage
+from app.pipeline.stages.composition_stage import CompositionStage
+from app.pipeline.stages.design_stages import ArtDirectionStage, StoryboardStage
 from app.pipeline.stages.knowledge_stages import FactCheckStage, KnowledgeStage
 from app.pipeline.stages.parse_stages import ParseDocStage, ParseTemplateStage, ValidateStage
 from app.pipeline.stages.plan_stages import OutlineStage, PlanStage
@@ -19,6 +21,16 @@ from app.pipeline.stages.render_stages import ConvertStage, RenderStage
 
 def _stages(*classes) -> list[Stage]:
     return [cls() for cls in classes]
+
+
+class KeySlideDesignPlaceholderStage(Stage):
+    """专业关键页 Agent 的流水线插槽；下一阶段替换为受约束实现。"""
+
+    code = "KEY_SLIDE_DESIGN"
+    weight = 5
+
+    def run(self, ctx) -> dict:
+        return {"selected": [], "applied": [], "fallback": []}
 
 
 # 编排为"组"的列表：组内多个阶段并行执行，组间串行
@@ -46,8 +58,11 @@ PIPELINES: dict[str, list[list[Stage]]] = {
         _stages(FactCheckStage),
         _stages(OutlineStage),
         _stages(PlanStage),
+        _stages(ArtDirectionStage),
+        _stages(StoryboardStage),
         _stages(ContentStage),
         _stages(MatchStage),
+        _stages(CompositionStage),
         _stages(LayoutStage),
         _stages(RenderStage),
         _stages(BeautifyStage),                       # 视觉优化闭环（管"好不好看"）
@@ -64,9 +79,13 @@ PIPELINES: dict[str, list[list[Stage]]] = {
         _stages(FactCheckStage),
         _stages(OutlineStage),
         _stages(PlanStage),
+        _stages(ArtDirectionStage),
+        _stages(StoryboardStage),
         _stages(ContentStage),
         _stages(MatchStage),
+        _stages(CompositionStage),
         _stages(LayoutStage),
+        _stages(KeySlideDesignPlaceholderStage),
         _stages(RenderStage),
         _stages(BeautifyStage),                       # 规则闭环 ≤2 轮 + Vision Critic 1 轮
         _stages(ConvertStage),
