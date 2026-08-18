@@ -349,6 +349,97 @@ def test_progress_heuristics():
         shutil.rmtree(tmp, ignore_errors=True)
 
 
+def test_complete_svg_pages_can_be_recovered_to_audited_pptx():
+    tmp = tempfile.mkdtemp(prefix="pm_recover_")
+    try:
+        repo = os.path.join(tmp, "repo")
+        project = os.path.join(repo, "projects", "pm_recover")
+        output_dir = os.path.join(project, "svg_output")
+        final_dir = os.path.join(project, "svg_final")
+        os.makedirs(output_dir)
+        os.makedirs(os.path.join(project, "exports"))
+        scripts = Path(repo, "skills", "ppt-master", "scripts")
+        scripts.mkdir(parents=True)
+        Path(scripts, "finalize_svg.py").write_text("# test", encoding="utf-8")
+        Path(scripts, "svg_to_pptx.py").write_text("# test", encoding="utf-8")
+        for i in range(1, 4):
+            Path(output_dir, f"P{i:02d}.svg").write_text("<svg/>", encoding="utf-8")
+        commands = []
+
+        def fake_run(cmd, **_kwargs):
+            commands.append(cmd)
+            if "finalize_svg.py" in cmd[1]:
+                os.makedirs(final_dir, exist_ok=True)
+                for source in Path(output_dir).glob("*.svg"):
+                    shutil.copy2(source, Path(final_dir, source.name))
+            else:
+                from pptx import Presentation
+                out = cmd[cmd.index("-o") + 1]
+                deck = Presentation()
+                for _ in range(3):
+                    deck.slides.add_slide(deck.slide_layouts[6])
+                deck.save(out)
+            return SimpleNamespace(returncode=0, stdout="ok", stderr="")
+
+        settings = SimpleNamespace(pptmaster_python_bin=sys.executable)
+        with patched(pptmaster_service, "repo_dir", lambda: repo), \
+                patched(pptmaster_service, "get_settings", lambda: settings), \
+                patched(pptmaster_service.subprocess, "run", fake_run):
+            recovered, audit = pptmaster_service._recover_pptx_from_svgs(
+                project, "pm_recover", expected_pages=3,
+            )
+
+        assert recovered and os.path.exists(recovered)
+        assert audit["recovered_from_svg"] is True
+        assert audit["quality_gate_bypassed"] is True
+        assert audit["source_pages"] == 3
+        assert audit["pptx_pages"] == 3
+        assert any("-s" in cmd and cmd[cmd.index("-s") + 1] == "final" for cmd in commands)
+    finally:
+        shutil.rmtree(tmp, ignore_errors=True)
+
+
+def test_incomplete_svg_pages_do_not_bypass_quality_gate():
+    tmp = tempfile.mkdtemp(prefix="pm_incomplete_")
+    try:
+        project = os.path.join(tmp, "project")
+        os.makedirs(os.path.join(project, "svg_output"))
+        Path(project, "svg_output", "P01.svg").write_text("<svg/>", encoding="utf-8")
+        Path(project, "svg_output", "P02.svg").write_text("<svg/>", encoding="utf-8")
+
+        recovered, audit = pptmaster_service._recover_pptx_from_svgs(
+            project, "pm_incomplete", expected_pages=3,
+        )
+
+        assert recovered is None
+        assert audit["reason"] == "svg_pages_incomplete"
+        assert audit["source_pages"] == 2
+        assert audit["expected_pages"] == 3
+    finally:
+        shutil.rmtree(tmp, ignore_errors=True)
+
+
+def test_beautify_recovery_uses_uploaded_pptx_page_count():
+    tmp = tempfile.mkdtemp(prefix="pm_beautify_expected_")
+    try:
+        sources = Path(tmp, "sources")
+        sources.mkdir()
+        from pptx import Presentation
+        deck = Presentation()
+        for _ in range(5):
+            deck.slides.add_slide(deck.slide_layouts[6])
+        deck.save(sources / "original.pptx")
+
+        assert pptmaster_service._recovery_expected_pages(
+            tmp, {"route": "beautify", "pages": None},
+        ) == 5
+        assert pptmaster_service._recovery_expected_pages(
+            tmp, {"route": "generate", "pages": None},
+        ) is None
+    finally:
+        shutil.rmtree(tmp, ignore_errors=True)
+
+
 def test_stage_history_is_deduplicated_and_exposed_by_dto():
     from app.api.pptmaster_api import _dto
 
@@ -360,12 +451,13 @@ def test_stage_history_is_deduplicated_and_exposed_by_dto():
 
     job = SimpleNamespace(
         biz_id="pm_history", title="history", input_mode="topic", route="generate", profile="quick",
-        agent="claude", model="qwen3.7-plus", status="running", progress=20, stage="启动 Agent",
+        agent="claude", model="kimi-k3", status="running", progress=20, stage="启动 Agent",
         params=params, source_files=[], template_name=None, outputs=[], preview_keys=[],
         page_count=None, file_size=None, error_message=None, created_at=None, started_at=None,
         finished_at=None, duration_ms=None, prompt="", log_tail="",
     )
     data = _dto(job)
+    assert data["model"] == "kimi-k3"
     assert data["stage_history"] == ["准备工作区", "启动 Agent"]
     assert "_stage_history" not in data["params"]
 

@@ -8,6 +8,7 @@ import glob
 import os
 import re
 import shutil
+import subprocess
 import sys
 import threading
 import time
@@ -16,7 +17,7 @@ from pathlib import Path
 
 from sqlalchemy import select
 
-from app.core.config import get_settings
+from app.core.config import get_settings, validate_selectable_model
 from app.core.database import db_session
 from app.core.logging import get_logger
 from app.models.models import PptMasterJob
@@ -364,6 +365,115 @@ def _collect_outputs(project: str, biz_id: str) -> tuple[list[dict], str | None,
     return outputs, primary, page_count
 
 
+def _recovery_expected_pages(project: str, params: dict) -> int | None:
+    configured = params.get("pages")
+    if configured:
+        try:
+            return int(configured)
+        except (TypeError, ValueError):
+            return None
+    if params.get("route") != "beautify":
+        return None
+    sources = sorted(glob.glob(os.path.join(project, "sources", "*.pptx")))
+    if len(sources) != 1:
+        return None
+    try:
+        from pptx import Presentation
+        return len(Presentation(sources[0]).slides)
+    except Exception:  # noqa: BLE001
+        return None
+
+
+def _recover_pptx_from_svgs(project: str, biz_id: str,
+                            expected_pages: int | None = None) -> tuple[str | None, dict]:
+    """将完整 SVG 页面诊断性导出为 PPTX，并返回可审计的恢复信息。
+
+    ppt-master 的正式转换会受质量门禁阻断。这里仅在页面已完整生成、Agent 正常退出但
+    exports/ 为空时使用显式 ``-s final`` 诊断覆盖；因此必须在任务状态中保留门禁绕过标记。
+    """
+    output_svgs = _list_page_svgs(os.path.join(project, "svg_output"))
+    expected = int(expected_pages) if expected_pages and int(expected_pages) > 0 else None
+    audit: dict = {
+        "recovered_from_svg": False,
+        "quality_gate_bypassed": False,
+        "source_pages": len(output_svgs),
+        "expected_pages": expected,
+    }
+    if not output_svgs:
+        audit["reason"] = "svg_pages_missing"
+        return None, audit
+    if expected is None:
+        audit["reason"] = "expected_page_count_unknown"
+        return None, audit
+    if expected is not None and len(output_svgs) != expected:
+        audit["reason"] = "svg_pages_incomplete"
+        return None, audit
+
+    repo = repo_dir()
+    scripts = os.path.join(repo, "skills", "ppt-master", "scripts")
+    finalize_script = os.path.join(scripts, "finalize_svg.py")
+    converter_script = os.path.join(scripts, "svg_to_pptx.py")
+    if not os.path.isfile(finalize_script) or not os.path.isfile(converter_script):
+        audit["reason"] = "recovery_scripts_missing"
+        return None, audit
+
+    os.makedirs(os.path.join(project, "exports"), exist_ok=True)
+    py = get_settings().pptmaster_python_bin or sys.executable
+    recovered = os.path.join(project, "exports", f"{biz_id}_recovered.pptx")
+    log_path = os.path.join(project, "agent.log")
+
+    def run_step(name: str, cmd: list[str]) -> subprocess.CompletedProcess:
+        result = subprocess.run(
+            cmd, cwd=repo, env=agent_env(repo), capture_output=True, text=True, timeout=300,
+            encoding="utf-8", errors="replace",
+        )
+        with open(log_path, "a", encoding="utf-8") as log:
+            log.write(f"\n[{_now().isoformat()}] RECOVERY {name} rc={result.returncode}\n")
+            if result.stdout:
+                log.write(result.stdout[-8000:])
+            if result.stderr:
+                log.write("\nSTDERR:\n" + result.stderr[-8000:])
+        return result
+
+    try:
+        finalized = run_step("finalize_svg", [py, finalize_script, project])
+        final_svgs = _list_page_svgs(os.path.join(project, "svg_final"))
+        if finalized.returncode != 0 or len(final_svgs) != len(output_svgs):
+            audit.update({"reason": "svg_finalize_failed", "finalize_returncode": finalized.returncode,
+                          "final_pages": len(final_svgs)})
+            return None, audit
+        converted = run_step(
+            "svg_to_pptx_diagnostic",
+            [py, converter_script, project, "-s", "final", "-o", recovered, "--no-notes"],
+        )
+        if converted.returncode != 0 or not os.path.isfile(recovered) or os.path.getsize(recovered) == 0:
+            audit.update({"reason": "pptx_conversion_failed", "convert_returncode": converted.returncode})
+            return None, audit
+
+        from pptx import Presentation
+        pptx_pages = len(Presentation(recovered).slides)
+        if pptx_pages != len(output_svgs):
+            try:
+                os.remove(recovered)
+            except OSError:
+                pass
+            audit.update({"reason": "pptx_page_count_mismatch", "pptx_pages": pptx_pages})
+            return None, audit
+        audit.update({
+            "recovered_from_svg": True,
+            "quality_gate_bypassed": True,
+            "reason": "complete_svg_diagnostic_export",
+            "final_pages": len(final_svgs),
+            "pptx_pages": pptx_pages,
+            "filename": os.path.basename(recovered),
+        })
+        return recovered, audit
+    except Exception as exc:  # noqa: BLE001
+        logger.warning("ppt-master 任务 %s SVG 恢复导出失败：%s", biz_id, exc)
+        audit.update({"reason": "recovery_exception", "error": str(exc)[:500]})
+        return None, audit
+
+
 def _collect_previews(project: str, biz_id: str, primary_pptx: str | None) -> tuple[list[str], dict | None]:
     """预览：优先 PPTX→PDF→PNG（需转换后端），否则退回 svg_final/ 或 svg_output/ 的逐页 SVG。返回 (预览键列表, pdf 输出)。"""
     storage = get_storage()
@@ -502,6 +612,14 @@ def run_pptmaster_job(job_pk: int) -> None:
         # ---- 3. 收集产物 ----
         _update(job_pk, stage="收集并上传产物", progress=96)
         outputs, primary, page_count = _collect_outputs(project, biz_id)
+        recovery_audit = None
+        if (not primary and result.returncode == 0 and not result.timed_out and not result.canceled):
+            _update(job_pk, stage="SVG 已完成，执行降级导出", progress=97)
+            _recovered, recovery_audit = _recover_pptx_from_svgs(
+                project, biz_id, _recovery_expected_pages(project, params),
+            )
+            if _recovered:
+                outputs, primary, page_count = _collect_outputs(project, biz_id)
         preview_keys, pdf_out = _collect_previews(project, biz_id, primary)
         if pdf_out:
             outputs.append(pdf_out)
@@ -527,6 +645,8 @@ def run_pptmaster_job(job_pk: int) -> None:
         failed_line = next((ln for ln in final_text.splitlines() if ln.strip().upper().startswith("FAILED:")), None)
         extra = {"cost_usd": result.cost_usd, "num_turns": result.num_turns,
                  "returncode": result.returncode, "final_text": final_text[-1000:]}
+        if recovery_audit:
+            extra["recovery"] = recovery_audit
         if result.canceled:
             _update(job_pk, status="canceled", stage="已取消", finished_at=_now(), duration_ms=duration_ms,
                     outputs=outputs, preview_keys=preview_keys, log_key=log_key, log_tail=_tail(log_path),
@@ -535,7 +655,9 @@ def run_pptmaster_job(job_pk: int) -> None:
             return
         if primary:
             note = ""
-            if result.timed_out:
+            if recovery_audit and recovery_audit.get("recovered_from_svg"):
+                note = "（SVG 降级导出，质量门禁未通过）"
+            elif result.timed_out:
                 note = "（Agent 超时被终止，但已导出 PPTX）"
             elif result.returncode != 0 or result.error:
                 note = "（Agent 退出异常，但已导出 PPTX）"
@@ -571,6 +693,79 @@ def run_pptmaster_job(job_pk: int) -> None:
         _update(job_pk, status="failed", stage="失败", finished_at=_now(), duration_ms=duration_ms,
                 error_message=f"执行异常：{str(e)[:800]}", agent_pid=None,
                 log_tail=_tail(log_path) if os.path.exists(log_path) else None)
+
+
+def backfill_missing_pptmaster_models(model: str = "qwen3.7-plus") -> int:
+    """回填模型选择功能上线前的空 model-id 记录，返回更新数量。"""
+    selected_model = validate_selectable_model(model)
+    with db_session() as db:
+        jobs = db.execute(select(PptMasterJob).where(PptMasterJob.model.is_(None))).scalars().all()
+        for job in jobs:
+            job.model = selected_model
+        return len(jobs)
+
+
+def recover_failed_pptmaster_job(job_pk: int) -> dict:
+    """恢复历史上“Agent 正常结束、SVG 完整、仅缺 PPTX”的误判失败任务。"""
+    with db_session() as db:
+        job = db.get(PptMasterJob, job_pk)
+        if job is None:
+            return {"ok": False, "reason": "job_not_found", "job_pk": job_pk}
+        if job.status != "failed":
+            return {"ok": False, "reason": "job_not_failed", "status": job.status, "job_pk": job_pk}
+        params = dict(job.params or {})
+        run_info = dict(params.get("_run") or {})
+        if run_info.get("returncode") != 0:
+            return {"ok": False, "reason": "agent_did_not_exit_cleanly", "job_pk": job_pk}
+        project = job.project_dir or ""
+        biz_id = job.biz_id
+        duration_ms = job.duration_ms
+    if not project or not os.path.isdir(project):
+        return {"ok": False, "reason": "project_workspace_missing", "job_pk": job_pk}
+
+    _existing, primary, _page_count = _collect_outputs(project, biz_id)
+    if primary:
+        recovery_audit = {
+            "recovered_from_svg": False,
+            "quality_gate_bypassed": False,
+            "reason": "existing_pptx_recollected",
+        }
+    else:
+        primary, recovery_audit = _recover_pptx_from_svgs(
+            project, biz_id, _recovery_expected_pages(project, params),
+        )
+    if not primary:
+        return {"ok": False, "reason": recovery_audit.get("reason", "recovery_failed"),
+                "audit": recovery_audit, "job_pk": job_pk}
+
+    outputs, primary, page_count = _collect_outputs(project, biz_id)
+    preview_keys, pdf_out = _collect_previews(project, biz_id, primary)
+    if pdf_out:
+        outputs.append(pdf_out)
+    storage = get_storage()
+    log_path = os.path.join(project, "agent.log")
+    log_key = None
+    if os.path.isfile(log_path):
+        log_key = f"pptmaster/{biz_id}/agent.log"
+        storage.put_file(log_key, log_path, "text/plain; charset=utf-8")
+        outputs.append({"kind": "log", "name": "agent.log", "size": os.path.getsize(log_path),
+                        "key": log_key})
+
+    run_info["recovery"] = recovery_audit
+    note = "完成（历史任务恢复）"
+    if recovery_audit.get("quality_gate_bypassed"):
+        note = "完成（SVG 降级导出，质量门禁未通过）"
+    updated_params = {**params, "_run": run_info}
+    _update(
+        job_pk, status="succeeded", progress=100, stage=note, finished_at=_now(),
+        duration_ms=duration_ms, outputs=outputs, preview_keys=preview_keys, log_key=log_key,
+        log_tail=_tail(log_path), page_count=page_count, file_size=os.path.getsize(primary),
+        error_message=None, agent_pid=None, params=updated_params,
+    )
+    logger.info("ppt-master 历史任务 %s 已恢复：%s（%d 页）", biz_id,
+                os.path.basename(primary), page_count or 0)
+    return {"ok": True, "job_pk": job_pk, "biz_id": biz_id, "page_count": page_count,
+            "filename": os.path.basename(primary), "audit": recovery_audit}
 
 
 def cancel_local_process(job: PptMasterJob) -> None:
