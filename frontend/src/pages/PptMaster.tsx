@@ -52,6 +52,11 @@ import type {
   PptMasterStatus,
 } from '../api/types';
 import { formatDuration, formatTime } from '../utils/format';
+import {
+  isTemplateStyleLocked,
+  resolveInitialModel,
+  resolvePptMasterStyle,
+} from '../utils/modelOptions';
 
 const PAGE_SIZE = 10;
 const POLL_MS = 3000; // 列表 / 详情存在进行中任务时的轮询间隔
@@ -107,7 +112,7 @@ interface FormValues {
   extra_instructions?: string;
   title?: string;
   agent: string;
-  model?: string;
+  model: string;
   timeout_minutes?: number | null;
 }
 
@@ -555,7 +560,7 @@ function SubmitForm({
       extra_instructions: '',
       title: '',
       agent: options.default_agent || options.agents[0]?.key || 'auto',
-      model: '',
+      model: resolveInitialModel(options.models, options.default_model),
       timeout_minutes: limits.timeout_minutes_default,
     }),
     [options, limits.timeout_minutes_default],
@@ -566,6 +571,7 @@ function SubmitForm({
   const profileKey = Form.useWatch('profile', form) ?? initialValues.profile;
   const selectedRoute = options.routes.find((r) => r.key === routeKey);
   const needsTemplate = !!selectedRoute?.needs_template;
+  const templateStyleLocked = isTemplateStyleLocked(routeKey);
   const needsPptx = !!selectedRoute?.needs_pptx;
   const routeAgents = selectedRoute?.agents;
   const hasAgentRestriction = !!routeAgents && routeAgents.length > 0;
@@ -585,6 +591,11 @@ function SubmitForm({
       form.setFieldValue('agent', routeAgents[0]);
     }
   }, [routeAgents, form]);
+
+  useEffect(() => {
+    const current = form.getFieldValue('style') as string | undefined;
+    form.setFieldValue('style', resolvePptMasterStyle(routeKey, current || 'auto'));
+  }, [routeKey, form]);
 
   // 环境告警：仓库未就绪 / 无可用真实 Agent
   const noRealAgent = !options.agents.some((a) => a.available && a.key !== 'mock');
@@ -645,7 +656,7 @@ function SubmitForm({
     fd.append('profile', v.profile);
     if (v.pages != null) fd.append('pages', String(v.pages));
     fd.append('canvas', v.canvas);
-    fd.append('style', v.style);
+    fd.append('style', resolvePptMasterStyle(v.route, v.style));
     fd.append('narrative_mode', v.narrative_mode);
     fd.append('reading_mode', v.reading_mode);
     fd.append('language', v.language);
@@ -655,7 +666,7 @@ function SubmitForm({
     if (v.extra_instructions?.trim()) fd.append('extra_instructions', v.extra_instructions.trim());
     if (v.title?.trim()) fd.append('title', v.title.trim());
     fd.append('agent', v.agent || 'auto');
-    if (v.model?.trim()) fd.append('model', v.model.trim());
+    fd.append('model', v.model.trim());
     if (v.timeout_minutes != null) fd.append('timeout_minutes', String(v.timeout_minutes));
     // 文件：源文件（可多个）+ 模板（可选单个）
     if (v.input_mode === 'files') {
@@ -861,6 +872,15 @@ function SubmitForm({
         {/* 参数区 */}
         <Row gutter={16}>
           <Col span={8}>
+            <Form.Item
+              name="model"
+              label="生成模型"
+              rules={[{ required: true, message: '请选择生成模型' }]}
+            >
+              <Select options={options.models.map((item) => ({ value: item, label: item }))} />
+            </Form.Item>
+          </Col>
+          <Col span={8}>
             <Form.Item name="pages" label="页数">
               <InputNumber
                 min={limits.pages_min}
@@ -882,11 +902,18 @@ function SubmitForm({
             </Form.Item>
           </Col>
           <Col span={8}>
-            <Form.Item name="style" label="视觉风格">
+            <Form.Item
+              name="style"
+              label="视觉风格"
+              extra={templateStyleLocked ? '视觉风格由上传的 PPTX 模板决定，不可修改' : undefined}
+            >
               <Select
+                disabled={templateStyleLocked}
                 showSearch
                 optionFilterProp="label"
-                options={options.styles.map((s) => ({ value: s.key, label: s.label, desc: s.desc }))}
+                options={options.styles
+                  .filter((s) => templateStyleLocked ? s.key === 'template' : s.key !== 'template')
+                  .map((s) => ({ value: s.key, label: s.label, desc: s.desc }))}
                 optionRender={(opt) => (
                   <div>
                     <div>{opt.data.label}</div>
@@ -963,22 +990,12 @@ function SubmitForm({
               forceRender: true,
               children: (
                 <Row gutter={16}>
-                  <Col span={8}>
+                  <Col span={12}>
                     <Form.Item name="agent" label="执行 Agent" style={{ marginBottom: 0 }}>
                       <Select options={agentOptions} />
                     </Form.Item>
                   </Col>
-                  <Col span={8}>
-                    <Form.Item
-                      name="model"
-                      label="模型"
-                      style={{ marginBottom: 0 }}
-                      extra="可选，留空使用 Agent 默认模型"
-                    >
-                      <Input placeholder="例如：claude-sonnet-4-5 / gpt-5" />
-                    </Form.Item>
-                  </Col>
-                  <Col span={8}>
+                  <Col span={12}>
                     <Form.Item name="timeout_minutes" label="超时（分钟）" style={{ marginBottom: 0 }}>
                       <InputNumber
                         min={1}

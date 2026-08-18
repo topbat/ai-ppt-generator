@@ -94,7 +94,9 @@ def build_prompt(biz_id: str, params: dict, source_rel_paths: list[str],
     else:
         reqs.append("页数：由你根据材料量决定")
     style = params.get("style") or "auto"
-    if style == "custom":
+    if style == "template":
+        reqs.append("视觉风格：完全由上传的 PPTX 模板决定；不得改动模板的配色、字体、版式、背景与品牌视觉语言")
+    elif style == "custom":
         reqs.append("视觉风格：自定义，见下方附加要求")
     elif style != "auto":
         reqs.append(f"视觉风格：{style}（内置风格）")

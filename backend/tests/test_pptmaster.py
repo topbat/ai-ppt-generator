@@ -35,12 +35,24 @@ def patched(obj, name, value):
 
 def test_catalog():
     assert {"files", "topic", "text", "url"} == catalog.VALID["input_mode"]
-    assert len(catalog.STYLES) == 20          # auto + 18 内置 + custom
+    assert len(catalog.STYLES) == 21          # auto + template lock + 18 内置 + custom
     assert len(catalog.CANVAS_FORMATS) == 8
     assert {"pyramid", "narrative", "instructional", "showcase", "briefing", "auto"} == catalog.VALID["narrative_mode"]
     assert catalog.ROUTE_BY_KEY["template_fill"]["needs_template"]
     assert catalog.ROUTE_BY_KEY["image_to_pptx"]["agents"] == ["codex"]
     print("[ok] catalog")
+
+
+def test_template_fill_style_is_locked_by_backend_and_prompt():
+    assert "template" in catalog.VALID["style"]
+    prompt = build_prompt(
+        "pm_template",
+        {"input_mode": "topic", "topic": "年度复盘", "route": "template_fill", "style": "template"},
+        [],
+        "projects/pm_template/sources/company.pptx",
+    )
+    assert "完全由上传的 PPTX 模板决定" in prompt
+    assert "不得改动模板" in prompt
 
 
 def test_prompt():
@@ -143,6 +155,59 @@ def test_api_defers_agent_availability_to_worker():
     print("[ok] API defers Agent availability to worker")
 
 
+def test_api_requires_configured_model_and_forces_template_style():
+    from app.api import pptmaster_api
+    from app.services import storage as storage_module
+    from app import worker as worker_module
+
+    class FakeStorage:
+        def put_bytes(self, *_args, **_kwargs):
+            return None
+
+    class FakeDb:
+        job = None
+
+        def add(self, job):
+            self.job = job
+
+        def commit(self):
+            return None
+
+        def refresh(self, job):
+            job.id = 1
+
+    class FakeUpload:
+        filename = "company.pptx"
+
+        async def read(self):
+            return b"pptx-template"
+
+    def kwargs_for(**overrides):
+        kwargs = {}
+        for name, param in inspect.signature(pptmaster_api.create_job).parameters.items():
+            default = param.default
+            kwargs[name] = getattr(default, "default", default)
+        kwargs.update({
+            "input_mode": "topic", "topic": "年度复盘", "route": "template_fill",
+            "profile": "quick", "pages": "8", "agent": "claude", "files": [],
+            "template": FakeUpload(), "db": FakeDb(),
+        })
+        kwargs.update(overrides)
+        return kwargs
+
+    invalid = asyncio.run(pptmaster_api.create_job(**kwargs_for(model="qwen-max")))
+    assert invalid["code"] == 1001 and "可选模型" in invalid["message"]
+
+    valid_kwargs = kwargs_for(model="qwen3.8-max", style="swiss-minimal")
+    db = valid_kwargs["db"]
+    with patched(storage_module, "get_storage", lambda: FakeStorage()), \
+            patched(worker_module.pptmaster_generate, "delay", lambda _job_id: None):
+        result = asyncio.run(pptmaster_api.create_job(**valid_kwargs))
+    assert result["code"] == 0, result
+    assert db.job.model == "qwen3.8-max"
+    assert db.job.params["style"] == "template"
+
+
 def test_options_reports_worker_managed_capabilities():
     from app.api import pptmaster_api
 
@@ -150,6 +215,9 @@ def test_options_reports_worker_managed_capabilities():
         pptmaster_execution_scope="worker", pptmaster_default_agent="auto",
         pptmaster_max_files=10, pptmaster_max_upload_mb=200,
         pptmaster_timeout_minutes=40, pptmaster_timeout_max_minutes=120,
+        llm_selectable_models="deepseek-v4,qwen3.7-plus,qwen3.8-max",
+        llm_default_selectable_model="qwen3.7-plus",
+        pptmaster_max_concurrent_jobs=3,
     )
     unavailable = [
         AgentInfo("claude", "Claude", False, None, "API missing"),
@@ -174,6 +242,8 @@ def test_options_reports_worker_managed_capabilities():
     assert data["repo"].get("delegated") is True
     assert agents["claude"]["available"] is True
     assert data["default_agent"] == "claude"
+    assert data["models"] == ["deepseek-v4", "qwen3.7-plus", "qwen3.8-max"]
+    assert data["default_model"] == "qwen3.7-plus"
     print("[ok] options reports worker-managed capabilities")
 
 

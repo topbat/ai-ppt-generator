@@ -23,7 +23,8 @@ from sqlalchemy import func, select
 from sqlalchemy.orm import Session
 
 from app.api.object_response import object_response
-from app.core.config import get_settings
+from app.core.config import (default_selectable_model, get_settings, selectable_models,
+                             validate_selectable_model)
 from app.core.database import get_db
 from app.core.ids import new_biz_id
 from app.core.logging import get_logger
@@ -130,6 +131,8 @@ def get_options():
         "agents": [{"key": a.key, "label": a.label, "available": a.available, "bin": a.bin, "note": a.note}
                    for a in agents],
         "default_agent": default_agent,
+        "models": selectable_models(s),
+        "default_model": default_selectable_model(s),
         "input_modes": catalog.INPUT_MODES,
         "routes": catalog.ROUTES,
         "profiles": catalog.PROFILES,
@@ -178,12 +181,18 @@ async def create_job(
     db: Session = Depends(get_db),
 ):
     s = get_settings()
+    if route == "template_fill":
+        style = "template"
     # ---- 枚举校验 ----
     for k, v in (("input_mode", input_mode), ("route", route), ("profile", profile), ("canvas", canvas),
                  ("style", style), ("narrative_mode", narrative_mode), ("reading_mode", reading_mode),
                  ("language", language), ("image_source", image_source)):
         if v not in catalog.VALID[k]:
             return err(1001, f"参数 {k} 取值不合法：{v}")
+    try:
+        selected_model = validate_selectable_model(model, s)
+    except ValueError as exc:
+        return err(1001, str(exc))
     route_def = catalog.ROUTE_BY_KEY[route]
     pages_int: int | None = None
     if str(pages).strip():
@@ -298,7 +307,7 @@ async def create_job(
 
     job = PptMasterJob(
         biz_id=biz_id, title=title[:250], input_mode=input_mode, route=route, profile=profile,
-        agent=want, model=(model.strip() or None), params=params, prompt=prompt,
+        agent=want, model=selected_model, params=params, prompt=prompt,
         status="pending", progress=0, stage="排队中", source_files=source_files,
         template_name=tpl_name, template_key=template_key,
     )
@@ -308,8 +317,8 @@ async def create_job(
 
     from app.worker import pptmaster_generate
     pptmaster_generate.delay(job.id)
-    logger.info("ppt-master 任务已创建 %s（%s / %s / agent=%s，%d 个文件）",
-                biz_id, input_mode, route, want, len(source_files))
+    logger.info("ppt-master 任务已创建 %s（%s / %s / agent=%s / model=%s，%d 个文件）",
+                biz_id, input_mode, route, want, selected_model, len(source_files))
     return ok({"job_id": biz_id})
 
 

@@ -7,3 +7,12 @@ export function resolveInitialModel(models: string[], defaultModel: string): str
   }
   return defaultModel;
 }
+
+export function isTemplateStyleLocked(route: string): boolean {
+  return route === 'template_fill';
+}
+
+export function resolvePptMasterStyle(route: string, currentStyle: string): string {
+  if (isTemplateStyleLocked(route)) return 'template';
+  return currentStyle === 'template' ? 'auto' : currentStyle;
+}
