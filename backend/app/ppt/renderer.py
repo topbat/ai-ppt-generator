@@ -150,6 +150,7 @@ def _render_with_template(rc, spec, tpl_path: str, roles: dict, out_path: str) -
     for sd in sorted(spec.slides, key=lambda s: s.page):
         data = sd.model_dump()
         rc.on_dark = False  # 每页重置，具体分支按来源模板页背景设置
+        before_count = len(prs.slides)
         try:
             _render_template_page(rc, prs, sd, data, roles, src_slide, content_area, blank_layout)
         except Exception as e:
@@ -162,6 +163,8 @@ def _render_with_template(rc, spec, tpl_path: str, roles: dict, out_path: str) -
             except Exception as e2:
                 logger.error("第 %d 页降级绘制仍失败(保留空页): %s", sd.page, e2)
                 prs.slides.add_slide(blank_layout)
+        if len(prs.slides) > before_count:
+            _attach_speaker_notes(prs.slides[-1], sd.speaker_notes)
 
     tc.delete_leading_slides(prs, orig_count)  # 删除模板原始页，克隆页保持顺序
 
@@ -290,6 +293,11 @@ def _render_template_page(rc, prs, sd, data, roles, src_slide, content_area, bla
                 h -= 0.42
             else:
                 rc.note(sd.page, "subtitle_skipped", "副标题过长已省略（避免截断残句）")
+        if sd.layout_recipe:
+            from app.ppt.recipe_renderer import paint_recipe
+
+            if paint_recipe(rc, slide, data):
+                return
         body = BODY_PAINTERS.get(stype if stype != "ending" else "summary",
                                  BODY_PAINTERS["title_content"])
         body(rc, slide, data, x, y, w, h)
@@ -331,7 +339,13 @@ def _render_with_system(rc, spec, out_path: str) -> list[int]:
         data = sd.model_dump()
         painter = LAYOUT_PAINTERS.get(sd.type, paint_title_content)
         try:
-            painter(rc, slide, data)
+            painted = False
+            if sd.layout_recipe:
+                from app.ppt.recipe_renderer import paint_recipe_page
+
+                painted = paint_recipe_page(rc, slide, data)
+            if not painted:
+                painter(rc, slide, data)
         except Exception as e:
             logger.warning("第 %d 页 [%s] 绘制失败，降级为通用版式: %s", sd.page, sd.type, e)
             degraded.append(sd.page)
@@ -345,6 +359,7 @@ def _render_with_system(rc, spec, out_path: str) -> list[int]:
                 paint_title_content(rc, slide, fallback)
             except Exception as e2:
                 logger.error("第 %d 页降级绘制仍失败(保留空页): %s", sd.page, e2)
+        _attach_speaker_notes(slide, sd.speaker_notes)
     _save(prs, out_path)
     return degraded
 
@@ -355,3 +370,19 @@ def _save(prs, out_path: str) -> None:
     except Exception as e:
         logger.error("PPTX 保存失败: %s", e)
         raise PPTError("E4001", f"保存失败: {e}") from e
+
+
+def _attach_speaker_notes(slide, notes: dict | None) -> None:
+    if not notes:
+        return
+    details = [str(item) for item in notes.get("details") or [] if str(item).strip()]
+    sources = notes.get("sources") or []
+    lines = []
+    if details:
+        lines.append("补充材料：")
+        lines.extend(f"- {item}" for item in details)
+    if sources:
+        lines.append("来源：")
+        lines.extend(f"- {source}" for source in sources)
+    if lines:
+        slide.notes_slide.notes_text_frame.text = "\n".join(lines)
