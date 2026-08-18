@@ -363,7 +363,9 @@ def test_complete_svg_pages_can_be_recovered_to_audited_pptx():
         Path(scripts, "finalize_svg.py").write_text("# test", encoding="utf-8")
         Path(scripts, "svg_to_pptx.py").write_text("# test", encoding="utf-8")
         for i in range(1, 4):
-            Path(output_dir, f"P{i:02d}.svg").write_text("<svg/>", encoding="utf-8")
+            Path(output_dir, f"P{i:02d}.svg").write_text(
+                '<svg><g data-pptx-layer="content"/></svg>', encoding="utf-8",
+            )
         commands = []
 
         def fake_run(cmd, **_kwargs):
@@ -372,6 +374,12 @@ def test_complete_svg_pages_can_be_recovered_to_audited_pptx():
                 os.makedirs(final_dir, exist_ok=True)
                 for source in Path(output_dir).glob("*.svg"):
                     shutil.copy2(source, Path(final_dir, source.name))
+            elif cmd[cmd.index("-s") + 1] == "final":
+                return SimpleNamespace(
+                    returncode=1,
+                    stdout="",
+                    stderr="flat mode forbids Master/Layout structure metadata: data-pptx-layer",
+                )
             else:
                 from pptx import Presentation
                 out = cmd[cmd.index("-o") + 1]
@@ -392,9 +400,13 @@ def test_complete_svg_pages_can_be_recovered_to_audited_pptx():
         assert recovered and os.path.exists(recovered)
         assert audit["recovered_from_svg"] is True
         assert audit["quality_gate_bypassed"] is True
+        assert audit["metadata_sanitized"] is True
         assert audit["source_pages"] == 3
         assert audit["pptx_pages"] == 3
         assert any("-s" in cmd and cmd[cmd.index("-s") + 1] == "final" for cmd in commands)
+        assert any("-s" in cmd and cmd[cmd.index("-s") + 1] == "svg_recovery" for cmd in commands)
+        cleaned = Path(project, "svg_recovery", "P01.svg").read_text(encoding="utf-8")
+        assert "data-pptx-layer" not in cleaned
     finally:
         shutil.rmtree(tmp, ignore_errors=True)
 

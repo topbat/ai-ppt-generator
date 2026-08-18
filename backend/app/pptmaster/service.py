@@ -384,6 +384,22 @@ def _recovery_expected_pages(project: str, params: dict) -> int | None:
         return None
 
 
+def _prepare_flat_recovery_svgs(project: str) -> tuple[str, int]:
+    """移除不兼容 flat 导出的旧版结构标记；不改变任何可见 SVG 内容。"""
+    source_dir = os.path.join(project, "svg_final")
+    recovery_dir = os.path.join(project, "svg_recovery")
+    shutil.rmtree(recovery_dir, ignore_errors=True)
+    os.makedirs(recovery_dir, exist_ok=True)
+    cleaned = 0
+    attr_re = re.compile(r"\sdata-pptx-layer\s*=\s*(?:\"[^\"]*\"|'[^']*')", re.IGNORECASE)
+    for source in _list_page_svgs(source_dir):
+        text = Path(source).read_text(encoding="utf-8")
+        updated, count = attr_re.subn("", text)
+        Path(recovery_dir, os.path.basename(source)).write_text(updated, encoding="utf-8")
+        cleaned += count
+    return recovery_dir, cleaned
+
+
 def _recover_pptx_from_svgs(project: str, biz_id: str,
                             expected_pages: int | None = None) -> tuple[str | None, dict]:
     """将完整 SVG 页面诊断性导出为 PPTX，并返回可审计的恢复信息。
@@ -398,6 +414,7 @@ def _recover_pptx_from_svgs(project: str, biz_id: str,
         "quality_gate_bypassed": False,
         "source_pages": len(output_svgs),
         "expected_pages": expected,
+        "metadata_sanitized": False,
     }
     if not output_svgs:
         audit["reason"] = "svg_pages_missing"
@@ -446,6 +463,16 @@ def _recover_pptx_from_svgs(project: str, biz_id: str,
             "svg_to_pptx_diagnostic",
             [py, converter_script, project, "-s", "final", "-o", recovered, "--no-notes"],
         )
+        converter_error = (converted.stdout or "") + "\n" + (converted.stderr or "")
+        if converted.returncode != 0 and "data-pptx-layer" in converter_error:
+            recovery_dir, cleaned_attrs = _prepare_flat_recovery_svgs(project)
+            recovery_svgs = _list_page_svgs(recovery_dir)
+            if cleaned_attrs > 0 and len(recovery_svgs) == len(output_svgs):
+                converted = run_step(
+                    "svg_to_pptx_flat_metadata_compat",
+                    [py, converter_script, project, "-s", "svg_recovery", "-o", recovered, "--no-notes"],
+                )
+                audit.update({"metadata_sanitized": True, "sanitized_attributes": cleaned_attrs})
         if converted.returncode != 0 or not os.path.isfile(recovered) or os.path.getsize(recovered) == 0:
             audit.update({"reason": "pptx_conversion_failed", "convert_returncode": converted.returncode})
             return None, audit
