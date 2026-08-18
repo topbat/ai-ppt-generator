@@ -23,8 +23,8 @@ from sqlalchemy import func, select
 from sqlalchemy.orm import Session
 
 from app.api.object_response import object_response
-from app.core.config import (beautify_selectable_model, default_selectable_model, get_settings,
-                             selectable_models, validate_selectable_model)
+from app.core.config import (default_pptmaster_model, get_settings, pptmaster_selectable_models,
+                             validate_pptmaster_model)
 from app.core.database import get_db
 from app.core.ids import new_biz_id
 from app.core.logging import get_logger
@@ -133,9 +133,9 @@ def get_options():
         "agents": [{"key": a.key, "label": a.label, "available": a.available, "bin": a.bin, "note": a.note}
                    for a in agents],
         "default_agent": default_agent,
-        "models": selectable_models(s),
-        "default_model": default_selectable_model(s),
-        "beautify_model": beautify_selectable_model(s),
+        "models": pptmaster_selectable_models(s),
+        "default_model": default_pptmaster_model(s),
+        "beautify_model": default_pptmaster_model(s),
         "input_modes": catalog.INPUT_MODES,
         "routes": catalog.ROUTES,
         "profiles": catalog.PROFILES,
@@ -194,7 +194,7 @@ async def create_job(
         if v not in catalog.VALID[k]:
             return err(1001, f"参数 {k} 取值不合法：{v}")
     try:
-        selected_model = validate_selectable_model(model, s)
+        selected_model = validate_pptmaster_model(model, s)
     except ValueError as exc:
         return err(1001, str(exc))
     route_def = catalog.ROUTE_BY_KEY[route]

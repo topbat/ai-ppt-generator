@@ -91,6 +91,8 @@ class Settings(BaseSettings):
     pptmaster_max_concurrent_jobs: int = 3           # 单个部署最多同时运行的 ppt-master 任务
     pptmaster_max_upload_mb: int = 200
     pptmaster_max_files: int = 10
+    pptmaster_selectable_models: str = "deepseek-v4-pro,qwen3.7-plus,qwen3.8-max"
+    pptmaster_default_model: str = "qwen3.7-plus"
     pptmaster_claude_model: str = ""                 # 为空用 CLI 默认模型
     pptmaster_codex_model: str = ""
     pptmaster_claude_max_budget_usd: float = 0       # >0 时给 claude -p 加 --max-budget-usd 费用上限（0=不限）
@@ -138,4 +140,38 @@ def validate_selectable_model(model: str | None, settings: Settings | None = Non
         raise ValueError("请选择模型")
     if selected not in selectable_models(settings):
         raise ValueError(f"模型 {selected} 不在可选模型列表中")
+    return selected
+
+
+def pptmaster_selectable_models(settings: Settings | None = None) -> list[str]:
+    """Return the model catalog exposed by the independent PPT-MASTER workflow."""
+    raw = (settings or get_settings()).pptmaster_selectable_models
+    models: list[str] = []
+    seen: set[str] = set()
+    for item in raw.split(","):
+        model = item.strip()
+        if model and model not in seen:
+            models.append(model)
+            seen.add(model)
+    if not models:
+        raise ValueError("PPTMASTER_SELECTABLE_MODELS 未配置可选模型")
+    return models
+
+
+def default_pptmaster_model(settings: Settings | None = None) -> str:
+    current = settings or get_settings()
+    default = current.pptmaster_default_model.strip()
+    if default not in pptmaster_selectable_models(current):
+        raise ValueError(
+            f"PPT-MASTER 默认模型 {default or '<empty>'} 不在 PPTMASTER_SELECTABLE_MODELS 中"
+        )
+    return default
+
+
+def validate_pptmaster_model(model: str | None, settings: Settings | None = None) -> str:
+    selected = (model or "").strip()
+    if not selected:
+        raise ValueError("请选择模型")
+    if selected not in pptmaster_selectable_models(settings):
+        raise ValueError(f"模型 {selected} 不在 PPT-MASTER 可选模型列表中")
     return selected

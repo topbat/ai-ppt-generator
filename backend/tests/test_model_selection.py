@@ -7,7 +7,8 @@ from app.ai import gateway as gateway_module
 from app.ai.gateway import LLMGateway, provider_of
 from app.api import jobs_api
 from app.core.config import (Settings, beautify_selectable_model, default_selectable_model,
-                             selectable_models, validate_selectable_model)
+                             default_pptmaster_model, pptmaster_selectable_models,
+                             selectable_models, validate_pptmaster_model, validate_selectable_model)
 from app.core.database import _INCREMENTAL_COLUMNS
 from app.models.models import GenerationJob
 from app.schemas.dto import JobCreateReq
@@ -25,6 +26,18 @@ def test_default_catalog_uses_actual_model_ids():
     assert beautify_selectable_model(settings) == "kimi-k3"
 
 
+def test_pptmaster_catalog_excludes_kimi():
+    settings = _settings()
+
+    assert pptmaster_selectable_models(settings) == [
+        "deepseek-v4-pro", "qwen3.7-plus", "qwen3.8-max",
+    ]
+    assert default_pptmaster_model(settings) == "qwen3.7-plus"
+    assert validate_pptmaster_model("qwen3.8-max", settings) == "qwen3.8-max"
+    with pytest.raises(ValueError, match="PPT-MASTER"):
+        validate_pptmaster_model("kimi-k3", settings)
+
+
 def test_example_env_files_publish_actual_model_ids():
     root = Path(__file__).resolve().parents[2]
 
@@ -34,6 +47,8 @@ def test_example_env_files_publish_actual_model_ids():
         assert "LLM_BEAUTIFY_MODEL=kimi-k3" in content
         assert "KIMI_API_KEY=" in content
         assert "KIMI_BASE_URL=" in content
+        assert "PPTMASTER_SELECTABLE_MODELS=deepseek-v4-pro,qwen3.7-plus,qwen3.8-max" in content
+        assert "PPTMASTER_DEFAULT_MODEL=qwen3.7-plus" in content
 
 
 def test_selectable_models_are_environment_ordered_and_deduplicated():

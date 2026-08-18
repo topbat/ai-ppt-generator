@@ -198,6 +198,11 @@ def test_api_requires_configured_model_and_forces_template_style():
     invalid = asyncio.run(pptmaster_api.create_job(**kwargs_for(model="qwen-max")))
     assert invalid["code"] == 1001 and "可选模型" in invalid["message"]
 
+    with patched(storage_module, "get_storage", lambda: FakeStorage()), \
+            patched(worker_module.pptmaster_generate, "delay", lambda _job_id: None):
+        kimi_result = asyncio.run(pptmaster_api.create_job(**kwargs_for(model="kimi-k3")))
+    assert kimi_result["code"] == 1001 and "PPT-MASTER" in kimi_result["message"]
+
     valid_kwargs = kwargs_for(model="qwen3.8-max", style="swiss-minimal")
     db = valid_kwargs["db"]
     with patched(storage_module, "get_storage", lambda: FakeStorage()), \
@@ -218,6 +223,8 @@ def test_options_reports_worker_managed_capabilities():
         llm_selectable_models="deepseek-v4-pro,kimi-k3,qwen3.7-plus,qwen3.8-max",
         llm_default_selectable_model="qwen3.7-plus",
         llm_beautify_model="kimi-k3",
+        pptmaster_selectable_models="deepseek-v4-pro,qwen3.7-plus,qwen3.8-max",
+        pptmaster_default_model="qwen3.7-plus",
         pptmaster_max_concurrent_jobs=3,
     )
     unavailable = [
@@ -243,9 +250,9 @@ def test_options_reports_worker_managed_capabilities():
     assert data["repo"].get("delegated") is True
     assert agents["claude"]["available"] is True
     assert data["default_agent"] == "claude"
-    assert data["models"] == ["deepseek-v4-pro", "kimi-k3", "qwen3.7-plus", "qwen3.8-max"]
+    assert data["models"] == ["deepseek-v4-pro", "qwen3.7-plus", "qwen3.8-max"]
     assert data["default_model"] == "qwen3.7-plus"
-    assert data["beautify_model"] == "kimi-k3"
+    assert data["beautify_model"] == "qwen3.7-plus"
     assert data["limits"]["max_concurrent_jobs"] == 3
     print("[ok] options reports worker-managed capabilities")
 
