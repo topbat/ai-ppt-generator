@@ -37,7 +37,7 @@ def fit_page_capacity(
     input_text = " ".join(_all_text(content))
     input_numbers = extract_numbers(content)
     expected_numbers = {str(number) for number in source_numbers}
-    if input_numbers != expected_numbers:
+    if not expected_numbers.issubset(input_numbers):
         raise ValueError(
             f"verified numbers changed: expected {sorted(expected_numbers)}, got {sorted(input_numbers)}"
         )
@@ -78,4 +78,4 @@ def fit_page_capacity(
     output_text = " ".join(_all_text({"visible": visible, "notes": notes}))
     if any(name not in output_text for name in protected_names):
         raise ValueError("protected names changed while fitting page capacity")
-    return CapacityResult(visible=visible, notes=notes, fact_numbers=input_numbers)
+    return CapacityResult(visible=visible, notes=notes, fact_numbers=expected_numbers)

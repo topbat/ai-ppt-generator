@@ -106,3 +106,31 @@ def test_composition_score_deducts_explicit_guard_and_rhythm_issues(monkeypatch)
     assert report["composition"]["typography_violations"] == 1
     assert report["composition"]["adjacent_fingerprint_duplicates"] == 1
     assert report["composition"]["deck_rhythm_score"] < 100
+
+
+def test_short_deck_is_not_penalized_for_unavoidable_family_dominance(monkeypatch):
+    monkeypatch.setattr(qa_stages, "db_session", _empty_db_session)
+    spec = PresentationSpec(
+        title="短文稿",
+        total_pages=1,
+        slides=[SlideSpec(page=1, type="title_content", title="正文")],
+    )
+    ctx = SimpleNamespace(
+        target_pages=1,
+        job_pk=9,
+        data={
+            "RENDER": {"render_notes": []},
+            "COMPOSE": {
+                "composition_by_page": {
+                    "1": {"family": "editorial", "fallback": False, "guard_issues": []}
+                },
+                "deck_issues": [],
+            },
+        },
+        _cache={"presentation_spec": spec},
+    )
+
+    report = qa_stages.build_report(ctx)
+
+    assert report["composition"]["dominant_family_ratio"] == 1.0
+    assert report["composition"]["deck_rhythm_score"] == 100

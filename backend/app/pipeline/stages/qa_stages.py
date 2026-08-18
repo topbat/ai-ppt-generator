@@ -143,7 +143,7 @@ def build_report(ctx: JobContext, extra_issues: list[dict] | None = None) -> dic
             margin_violations,
             typography_violations,
             adjacent_duplicates,
-            dominant_ratio,
+            dominant_ratio if len(families) >= 4 else 0.0,
             focal_streaks,
         ),
         "key_slides_selected": key_slides.get("selected") or [],

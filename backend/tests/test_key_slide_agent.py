@@ -27,6 +27,11 @@ def test_scene_primitives_are_restricted_to_approved_types():
         )
 
 
+def test_scene_must_contain_at_least_one_primitive():
+    with pytest.raises(ValidationError):
+        SceneSpec(page=3, content_hash="0" * 64, primitives=[])
+
+
 def test_scene_rejects_unknown_locked_content_reference():
     locked = {"bullet:0": "核心事实"}
     scene = SceneSpec(
@@ -68,7 +73,19 @@ def test_scene_text_must_equal_frozen_content_value():
 
 
 def test_scene_rejects_invalid_content_hash():
-    scene = SceneSpec(page=3, content_hash="0" * 64, primitives=[])
+    scene = SceneSpec(
+        page=3,
+        content_hash="0" * 64,
+        primitives=[
+            ScenePrimitive(
+                id="p1",
+                type="text",
+                content_id="bullet:0",
+                text="核心事实",
+                box=Box(x=1, y=2, width=3, height=1),
+            )
+        ],
+    )
 
     with pytest.raises(ValueError, match="content hash"):
         validate_scene(scene, {"bullet:0": "核心事实"}, _contract())

@@ -254,6 +254,30 @@ AI 只产出/修改该 JSON；Renderer 只消费该 JSON。完整 Schema 用 Pyd
 
 ## 4. 三模式流水线设计（核心）
 
+### 4.0 企业模板视觉构图层（当前实现）
+
+标准与专业模式的正文链路为：
+
+```text
+PLAN
+  → ART_DIRECTION（继承模板字体/品牌色，生成整册艺术方向）
+  → STORYBOARD（逐页 thesis / importance / focal / capacity）
+  → CONTENT（按分镜容量收口，溢出支持材料进入 speaker_notes）
+  → MATCH
+  → COMPOSE（布局语法投影、安全区校验、整册重复度重平衡）
+  → LAYOUT（写入 visual_plan / layout_recipe / speaker_notes）
+  → [专业] KEY_SLIDE_DESIGN（受约束 SceneSpec，失败逐页回退）
+  → RENDER
+```
+
+`PARSE_TPL` 的 `layout_meta.space_contract` 以英寸描述页面大小、正文安全区、12列网格、logo/页脚保护区。正文区域的所有 Box 必须分别通过 top/right/bottom/left 检查；文本按语义角色检查字号，正文最小 16pt，来源文字才允许 10–13pt。
+
+构图选择不是随机模板轮换。候选按内容兼容 40、近期家族差异 25、模板空间适配 20、节奏贡献 15 评分，并以 `sha256(job_id:page:recipe_id)` 稳定打破平局。整册二次平衡限制单一家族占比不超过 30%（存在替代方案时），禁止相邻构图指纹重复及连续三页同焦点。
+
+专业关键页数量为正文页的 `ceil(18%)`，最多 5 页；少于 8 个正文页时最多 1 页，同时满足一章一页、关键页不相邻。Agent 只接收冻结可见内容、内容哈希、模板 Token、空间契约及相邻指纹；SceneSpec 仅允许 text/shape/chart/table/connector。内容哈希、逐字文本、Token 或空间校验任一失败即重试，连续两次失败保留 COMPOSE 普通布局。
+
+各模式差异：极速模式不进入上述新增阶段；标准模式启用 ART_DIRECTION/STORYBOARD/COMPOSE；专业模式再启用 KEY_SLIDE_DESIGN。因而极速调用量不变，标准/专业固定增加两次结构化调用，专业按关键页额外增加最多两次场景调用。
+
 三种模式是**三个不同的 DAG 编排 + 不同的 Agent 策略 + 不同的 QA 深度**，共用同一批 Stage 实现与 Guard 层。
 
 ### 4.1 ⚡ 极速模式（fast，默认）

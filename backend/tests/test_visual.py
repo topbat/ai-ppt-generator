@@ -59,7 +59,7 @@ def test_tokens_grid():
     print("✓ Design Token 12列网格/锚线/8pt吸附 通过")
 
 
-def test_score_engine():
+def _check_score_engine():
     spec = _bad_spec()
     out = os.path.join(OUT_DIR, "visual_bad.pptx")
     result = render_presentation(spec, out)
@@ -82,7 +82,7 @@ def test_score_engine():
     return spec, out, result, score
 
 
-def test_ops_dsl(spec, score):
+def _check_ops_dsl(spec, score):
     ops = derive_ops(score, spec.model_dump())
     kinds = {o["op"] for o in ops}
     assert kinds <= set(FIX_OPS), f"产出了枚举外 op: {kinds - set(FIX_OPS)}"
@@ -101,7 +101,7 @@ def test_ops_dsl(spec, score):
     return ops
 
 
-def test_adjuster_and_loop(spec, pptx0, score0, ops):
+def _check_adjuster_and_loop(spec, pptx0, score0, ops):
     spec_ops = [o for o in ops if o["op"] in SPEC_OPS]
     new_dict, applied, skipped = apply_spec_ops(spec.model_dump(), spec_ops, "medium")
     assert applied, "确定性调整器未应用任何指令"
@@ -154,10 +154,25 @@ def test_good_deck_stability():
     print(f"✓ 常规文稿稳定性通过（视觉分 {score['score']}，无升格类误报）")
 
 
+def test_score_engine():
+    _check_score_engine()
+
+
+def test_ops_dsl():
+    spec, _, _, score = _check_score_engine()
+    _check_ops_dsl(spec, score)
+
+
+def test_adjuster_and_loop():
+    spec, pptx0, _, score0 = _check_score_engine()
+    ops = _check_ops_dsl(spec, score0)
+    _check_adjuster_and_loop(spec, pptx0, score0, ops)
+
+
 if __name__ == "__main__":
     test_tokens_grid()
-    spec, pptx0, render_result, score0 = test_score_engine()
-    ops = test_ops_dsl(spec, score0)
-    test_adjuster_and_loop(spec, pptx0, score0, ops)
+    spec, pptx0, render_result, score0 = _check_score_engine()
+    ops = _check_ops_dsl(spec, score0)
+    _check_adjuster_and_loop(spec, pptx0, score0, ops)
     test_good_deck_stability()
     print("\n视觉优化全部冒烟测试通过 ✅")

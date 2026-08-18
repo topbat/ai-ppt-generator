@@ -25,4 +25,4 @@ class ScenePrimitive(BaseModel):
 class SceneSpec(BaseModel):
     page: int = Field(ge=1)
     content_hash: str = Field(min_length=64, max_length=64)
-    primitives: list[ScenePrimitive]
+    primitives: list[ScenePrimitive] = Field(min_length=1, max_length=40)
