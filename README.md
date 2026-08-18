@@ -35,7 +35,7 @@ docker compose up -d --build
 
 首次启动会自动：建表 → 创建存储桶 `ppt-gen` → 注册"系统默认模板"。
 
-使用流程：**模板库上传公司模板（可选）→ 新建生成 → 上传 PDF/DOCX → 选页数/模式/密度 → 开始生成 → 实时进度（边生成边看）→ 在线预览 / 下载 PPTX**。
+使用流程：**模板库上传公司模板（可选）→ 新建生成 → 上传 PDF/DOCX → 选模型/页数/模式/密度 → 开始生成 → 实时进度（边生成边看）→ 在线预览 / 下载 PPTX**。
 
 ## 本地容器运行
 
@@ -63,8 +63,11 @@ docker compose ps -a
 
 ```dotenv
 # 真实 Claude Code + 阿里云百炼（推荐示例）
+LLM_SELECTABLE_MODELS=deepseek-v4,qwen3.7-plus,qwen3.8-max
+LLM_DEFAULT_SELECTABLE_MODEL=qwen3.7-plus
 PPTMASTER_DEFAULT_AGENT=auto
 PPTMASTER_CLAUDE_MODEL=qwen3.7-plus
+PPTMASTER_MAX_CONCURRENT_JOBS=3
 ANTHROPIC_AUTH_TOKEN=<百炼 API Key>
 ANTHROPIC_BASE_URL=https://<WorkspaceId>.cn-beijing.maas.aliyuncs.com/apps/anthropic
 PPTMASTER_CLAUDE_MAX_BUDGET_USD=12
@@ -172,8 +175,8 @@ ppt-master/ （不入库）hugohe3/ppt-master 稀疏克隆，与 backend 同级�
                                                                      （或 mock）无人值守跑完 → 收集 exports/*.pptx
 ```
 
-- **入参**（覆盖 ppt-master 支持的方式）：输入方式 上传源文件(PDF/DOCX/PPTX/XLSX/MD/HTML/EPUB/图片，多文件) / 仅主题(topic-research) / 粘贴文本 / 网页链接；路线 生成新 PPT / 套用我的 PPTX 模板(template-fill) / 美化现有 PPTX(1:1) / 为 PPTX 加备注·旁白·转场(native-enhance) / 页面图片还原(image-to-pptx，仅 Codex) / 蒸馏模板(create-template)；档位 quick / default(自动决策不确认)；页数、8 种画布(ppt169/ppt43/小红书/朋友圈/story/公众号头图/banner/A4)、18 种视觉风格、5 种叙事模式、阅读模式、语言、图片素材策略、原生图表/讲者备注/语音旁白/转场/动画开关、附加要求；执行 Agent(claude/codex/mock)、模型、超时。
-- **状态与产物**：`pending → running(progress/stage 启发式：事件流 + 工作区文件) → succeeded|failed|canceled`；产物 PPTX（含 `_native_charts_tables` / `_narrated` 变体）、逐页预览（有 LibreOffice 时 PNG，否则直接用 ppt-master 的页面 SVG）、可读执行日志 + 原始事件流、交付报告；支持取消（杀 Agent 进程树）、删除、下载（后端代理，局域网可达）。
+- **入参**（覆盖 ppt-master 支持的方式）：输入方式 上传源文件(PDF/DOCX/PPTX/XLSX/MD/HTML/EPUB/图片，多文件) / 仅主题(topic-research) / 粘贴文本 / 网页链接；路线 生成新 PPT / 套用我的 PPTX 模板(template-fill) / 美化现有 PPTX(1:1) / 为 PPTX 加备注·旁白·转场(native-enhance) / 页面图片还原(image-to-pptx，仅 Codex) / 蒸馏模板(create-template)；档位 quick / default(自动决策不确认)；模型由环境目录三选一；页数、8 种画布、视觉风格、叙事模式、阅读模式、语言、图片素材策略、增强开关和附加要求。模板填充路线的视觉风格固定为上传模板，不可修改。
+- **状态与产物**：`pending → running(progress/stage 启发式：事件流 + 工作区文件) → succeeded|failed|canceled`；列表独立展示模型，运行中悬浮展示 `stage1 --> stage2 --> stage3` 完整轨迹；最多同时生成 3 个，更多任务保持 pending 排队；产物 PPTX、逐页预览、日志与报告均支持下载。
 - **成本**：每个任务的 Claude 费用/轮次记录在详情 `run` 字段；2026-08-17 容器实测 `qwen3.7-plus`、topic/quick/1 页为 375 秒、40 轮、约 $2.05。实际成本随主题、页数、模型和质检修复轮次变化；`PPTMASTER_CLAUDE_MAX_BUDGET_USD` 可设单任务费用上限。
 - **完全隔离**：独立表 `pptmaster_jobs`、独立路由 `/api/v1/pptmaster/*`、独立 Celery 队列 `pptmaster` 与 Worker，不触碰生成流水线代码。
 
@@ -192,8 +195,8 @@ cd deploy && docker compose --profile pptmaster up -d --build pptmaster-worker
 git clone --filter=blob:none --sparse --depth 1 --branch v4.8.0 https://github.com/hugohe3/ppt-master.git ppt-master
 git -C ppt-master sparse-checkout set --no-cone '/*' '!/examples' '!/docs/assets'   # 剔除 800MB 示例（Windows Git Bash 前置 MSYS_NO_PATHCONV=1）
 pip install -r ppt-master/skills/ppt-master/requirements.txt
-# backend/.env：PPTMASTER_REPO_DIR=../ppt-master（默认值，相对 backend/ 解析）  PPTMASTER_DEFAULT_AGENT=auto  （claude / codex CLI 需已登录）
-cd backend && celery -A app.worker worker -Q pptmaster -c 1 -P threads
+# backend/.env：PPTMASTER_REPO_DIR=../ppt-master  PPTMASTER_DEFAULT_AGENT=auto  PPTMASTER_MAX_CONCURRENT_JOBS=3
+cd backend && celery -A app.worker worker -Q pptmaster -c 3 -P threads
 ```
 
 没有任何 Agent CLI 时选 `mock` 仍可跑通"提交 → 轮询 → 上传 → 预览 → 下载"全链路（产出占位 PPTX）。冒烟脚本按直接执行方式编写：`python tests/test_pptmaster.py`；当前本机 Python 环境需先安装 `backend/requirements.txt`，否则会在导入 `boto3` 等依赖时中止。

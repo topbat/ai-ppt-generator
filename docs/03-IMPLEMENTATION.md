@@ -659,6 +659,7 @@ CREATE TABLE generation_jobs (
   target_pages   INT NOT NULL CHECK (target_pages BETWEEN 5 AND 100),
   mode           VARCHAR(16) NOT NULL DEFAULT 'fast',    -- fast|standard|premium
   density        VARCHAR(16) NOT NULL DEFAULT 'medium',  -- low|medium|high
+  model          VARCHAR(64),                    -- 用户选择的任务级模型（新任务必填，历史任务可空）
   options        JSONB NOT NULL DEFAULT '{}',    -- 高级选项(汇报对象/风格要求等)
   status         VARCHAR(16) NOT NULL DEFAULT 'pending',
                  -- pending|running|waiting_user|succeeded|failed|canceled
@@ -1034,6 +1035,8 @@ volumes: {pgdata: {}, redisdata: {}, miniodata: {}, pptmaster-projects: {}}
 QWEN_API_KEY=...            QWEN_BASE_URL=https://dashscope.aliyuncs.com/compatible-mode/v1
 DEEPSEEK_API_KEY=...        DEEPSEEK_BASE_URL=https://api.deepseek.com
 LLM_MAX_CONCURRENCY_PER_PROVIDER=8
+LLM_SELECTABLE_MODELS=deepseek-v4,qwen3.7-plus,qwen3.8-max
+LLM_DEFAULT_SELECTABLE_MODEL=qwen3.7-plus
 # 存储
 STORAGE_BACKEND=minio                       # minio | oss
 S3_ENDPOINT=http://minio:9000  S3_BUCKET=ppt-gen  S3_ACCESS_KEY=...  S3_SECRET_KEY=...
@@ -1044,6 +1047,7 @@ VISION_QA_ENABLED=false  OCR_ENABLED=false
 # ppt-master（百炼 Claude Code 示例）
 PPTMASTER_EXECUTION_SCOPE=worker  PPTMASTER_DEFAULT_AGENT=auto
 PPTMASTER_CLAUDE_MODEL=qwen3.7-plus
+PPTMASTER_MAX_CONCURRENT_JOBS=3
 ANTHROPIC_AUTH_TOKEN=...  ANTHROPIC_BASE_URL=https://<WorkspaceId>.cn-beijing.maas.aliyuncs.com/apps/anthropic
 ```
 
@@ -1051,7 +1055,7 @@ Worker 执行域下 API 不依赖本地仓库/CLI：提交时只校验 Agent 枚
 
 ### 11.3 扩容与高可用
 
-- **扩容点**：普通 `worker` 可按队列吞吐扩容；`pptmaster-worker` 默认并发 1，按 Agent 费用和资源谨慎扩容；API 可加副本但当前 Compose 未配置副本数；
+- **扩容点**：普通 `worker` 可按队列吞吐扩容；`pptmaster-worker` 单部署并发固定上限 3，更多任务留在 Redis 队列并保持 pending。当前上限依赖单 Worker 容器，若未来横向扩容需先增加分布式租约；API 可加副本但当前 Compose 未配置副本数；
 - 当前文档保留 Celery 重派/断点幂等作为设计目标，不能据此推断所有阶段已实现完整断点恢复；
 - 产物清理、僵尸任务扫描和 Celery beat 尚未接入，相关留存配置目前只是配置项。
 

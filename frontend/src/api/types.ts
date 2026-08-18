@@ -405,6 +405,7 @@ export interface PptMasterOptions {
     pages_max: number;
     timeout_minutes_default: number;
     timeout_minutes_max: number;
+    max_concurrent_jobs: number;
   };
   /** 允许上传的扩展名，如 ['.pdf', '.docx', ...] */
   accept_extensions: string[];
