@@ -17,6 +17,7 @@ from app.core.errors import PPTError
 from app.core.logging import get_logger
 from app.models.models import Fact, JobSlide
 from app.pipeline.context import JobContext
+from app.pipeline.guards.capacity_guard import extract_numbers, fit_page_capacity
 from app.pipeline.guards.guards import content_guard
 from app.pipeline.stages.base import Stage
 
@@ -58,6 +59,14 @@ class ContentStage(Stage):
             elif p["type"] == "ending":
                 pages[str(p["page"])] = {"page": p["page"], "type": "ending",
                                          "title": p.get("title", "感谢聆听"), "elements": []}
+
+        for page_key, content in list(pages.items()):
+            fitted, moved = self._fit_storyboard_capacity(ctx, int(page_key), content)
+            pages[page_key] = fitted
+            if moved:
+                issues_by_page.setdefault(int(page_key), []).append(
+                    f"内容容量超限，{moved} 条支持材料已移至演讲者备注"
+                )
 
         content_plan = [p for p in plan
                         if p["type"] not in ("cover", "toc", "section", "summary", "ending")]
@@ -183,12 +192,32 @@ class ContentStage(Stage):
                                      "items": [plan_page.get("key_message") or plan_page.get("title", "")]}]}
             issues = ["页面生成失败，已降级为要点页"]
             degraded.append(page_no)
+        content, moved = self._fit_storyboard_capacity(ctx, page_no, content)
+        if moved:
+            issues.append(f"内容容量超限，{moved} 条支持材料已移至演讲者备注")
         pages[str(page_no)] = content
         if issues:
             issues_by_page[page_no] = issues
         ctx.publisher.page_done(page_no, {
             "title": content.get("title", ""),
             "bullets": _preview_bullets(content)})
+
+    def _fit_storyboard_capacity(self, ctx, page_no: int, content: dict) -> tuple[dict, int]:
+        raw_plans = (ctx.data.get("STORYBOARD") or {}).get("slides") or []
+        visual = next((plan for plan in raw_plans if plan.get("page") == page_no), None)
+        if visual is None:
+            return content, 0
+        result = fit_page_capacity(
+            content=content,
+            max_points=int(visual.get("max_points") or 5),
+            max_chars=int(visual.get("max_chars") or 180),
+            source_numbers=extract_numbers(content),
+        )
+        visible = result.visible
+        visible["visual_plan"] = visual
+        if result.notes["moved_count"]:
+            visible["speaker_notes"] = result.notes
+        return visible, result.notes["moved_count"]
 
     def _publish_progress(self, ctx, pages, issues_by_page):
         done = len(pages)

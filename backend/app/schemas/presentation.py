@@ -52,6 +52,9 @@ class SlideSpec(BaseModel):
     elements: list[dict[str, Any]] = Field(default_factory=list)
     sources: list[dict[str, Any]] = Field(default_factory=list)  # [{document_id, pages}]
     notes: str | None = None
+    visual_plan: dict[str, Any] | None = None
+    layout_recipe: str | None = None
+    speaker_notes: dict[str, Any] | None = None
 
     @field_validator("type")
     @classmethod
