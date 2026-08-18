@@ -43,6 +43,8 @@ class Settings(BaseSettings):
     llm_model_reasoner: str = "deepseek-reasoner"  # 复杂推理（专业模式大纲/修复）
     llm_model_fallback: str = "deepseek-chat"   # 备用通道（主通道失败自动切换）
     llm_model_vision: str = "qwen-vl-max"       # Vision QA（专业模式视觉审查）
+    llm_selectable_models: str = "deepseek-v4,qwen3.7-plus,qwen3.8-max"
+    llm_default_selectable_model: str = "qwen3.7-plus"
 
     # ---- 任务控制 ----
     job_timeout_fast: int = 300
@@ -93,3 +95,35 @@ class Settings(BaseSettings):
 @lru_cache
 def get_settings() -> Settings:
     return Settings()
+
+
+def selectable_models(settings: Settings | None = None) -> list[str]:
+    """Return the ordered, unique user-selectable model catalog from the environment."""
+    raw = (settings or get_settings()).llm_selectable_models
+    models: list[str] = []
+    seen: set[str] = set()
+    for item in raw.split(","):
+        model = item.strip()
+        if model and model not in seen:
+            models.append(model)
+            seen.add(model)
+    if not models:
+        raise ValueError("LLM_SELECTABLE_MODELS 未配置可选模型")
+    return models
+
+
+def default_selectable_model(settings: Settings | None = None) -> str:
+    current = settings or get_settings()
+    default = current.llm_default_selectable_model.strip()
+    if default not in selectable_models(current):
+        raise ValueError(f"默认模型 {default or '<empty>'} 不在 LLM_SELECTABLE_MODELS 中")
+    return default
+
+
+def validate_selectable_model(model: str | None, settings: Settings | None = None) -> str:
+    selected = (model or "").strip()
+    if not selected:
+        raise ValueError("请选择模型")
+    if selected not in selectable_models(settings):
+        raise ValueError(f"模型 {selected} 不在可选模型列表中")
+    return selected
