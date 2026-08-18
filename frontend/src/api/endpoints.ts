@@ -1,4 +1,4 @@
-import { get, post, del, upload } from './client';
+import { get, post, del, upload, uploadForm } from './client';
 import type {
   AdminStats,
   AiTemplateOptions,
@@ -12,6 +12,10 @@ import type {
   JobMode,
   JobOutput,
   JobStatus,
+  PptMasterJobDetail,
+  PptMasterJobListResult,
+  PptMasterOptions,
+  PptMasterStatus,
   QualityReport,
   RetryStrategy,
   SlideItem,
@@ -72,6 +76,22 @@ export const beautifyApi = {
   /** 美化记录列表（创建时间倒序） */
   list: (params?: { page?: number; page_size?: number }) =>
     get<BeautifyListResult>('/beautify', params),
+};
+
+/** ---------- ppt-master 生成（异步提交 → 轮询） ---------- */
+export const pptmasterApi = {
+  /** 可选项与限制（输入方式/路线/档位/画布/风格/Agent 等） */
+  options: () => get<PptMasterOptions>('/pptmaster/options'),
+  /** 提交生成任务（multipart：业务字段 + files[] + template），秒回 job_id */
+  create: (form: FormData) => uploadForm<{ job_id: string }>('/pptmaster/jobs', form),
+  list: (params: { status?: PptMasterStatus | ''; page?: number; page_size?: number }) =>
+    get<PptMasterJobListResult>('/pptmaster/jobs', params),
+  detail: (id: string) => get<PptMasterJobDetail>(`/pptmaster/jobs/${id}`),
+  cancel: (id: string) =>
+    post<{ job_id: string; status: PptMasterStatus }>(`/pptmaster/jobs/${id}/cancel`),
+  remove: (id: string) => del<{ deleted: boolean }>(`/pptmaster/jobs/${id}`),
+  // 下载 / 预览图 / 完整日志为后端代理的文件流，直接使用返回数据里的
+  // download_url / preview_urls / log_url 放到 <a href> / <img src> 即可。
 };
 
 /** ---------- 管理端 ---------- */

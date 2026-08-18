@@ -73,6 +73,22 @@ class Settings(BaseSettings):
     artifact_retention_days: int = 30
     checkpoint_retention_days: int = 7
 
+    # ---- ppt-master 生成（独立能力：以子进程驱动 Claude Code / Codex 在 ppt-master 仓库内跑工作流）----
+    pptmaster_execution_scope: str = "local"       # local | worker；容器部署由独立 Worker 解析 Agent
+    pptmaster_repo_dir: str = "../ppt-master"        # ppt-master 仓库目录（含 skills/ppt-master）；相对路径按 backend/ 解析，容器内为 /opt/ppt-master
+    pptmaster_projects_dir: str = ""                 # 项目工作区（默认 <repo>/projects）
+    pptmaster_default_agent: str = "auto"            # auto | claude | codex | mock
+    pptmaster_claude_bin: str = ""                   # 为空则在 PATH 与常见安装位置自动探测
+    pptmaster_codex_bin: str = ""
+    pptmaster_python_bin: str = ""                   # Agent 调用 python3 时使用的解释器（默认当前解释器）
+    pptmaster_timeout_minutes: int = 40              # 单任务默认超时
+    pptmaster_timeout_max_minutes: int = 120
+    pptmaster_max_upload_mb: int = 200
+    pptmaster_max_files: int = 10
+    pptmaster_claude_model: str = ""                 # 为空用 CLI 默认模型
+    pptmaster_codex_model: str = ""
+    pptmaster_claude_max_budget_usd: float = 0       # >0 时给 claude -p 加 --max-budget-usd 费用上限（0=不限）
+
 
 @lru_cache
 def get_settings() -> Settings:

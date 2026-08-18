@@ -367,6 +367,25 @@ def _score_consistency(page_infos: list[dict]) -> tuple[float, list[dict]]:
 
 # ================= 主入口 =================
 
+def score_composition_rhythm(
+    margin_violations: int,
+    typography_violations: int,
+    adjacent_duplicates: int,
+    dominant_family_ratio: float,
+    focal_streaks: int = 0,
+) -> int:
+    """构图节奏的显式扣分表，与原九维视觉分保持独立。"""
+    dominance_penalty = max(0.0, dominant_family_ratio - 0.30) * 40
+    deductions = (
+        margin_violations * 10
+        + typography_violations * 10
+        + adjacent_duplicates * 15
+        + focal_streaks * 8
+        + dominance_penalty
+    )
+    return max(0, round(100 - deductions))
+
+
 def score_presentation(spec, pptx_path: str, notes: list[dict] | None = None) -> dict:
     """spec: PresentationSpec 或等价 dict；pptx_path: 渲染产物；notes: 渲染备注。"""
     sd_list = spec.model_dump()["slides"] if hasattr(spec, "model_dump") else spec["slides"]

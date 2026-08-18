@@ -108,8 +108,14 @@ class ParseTemplateStage(Stage):
             (r.layout_meta or {}).get("parser_ver") == PARSER_VERSION for r in rows)
         if tpl.status == "ready" and tpl.design_tokens and version_ok:
             logger.info("复用模板解析结果：%s（%d 个版式）", tpl.name, tpl.slide_count or 0)
+            content_row = max(
+                (row for row in rows if row.slide_type == "content_frame"),
+                key=lambda row: float(row.confidence),
+                default=(rows[0] if rows else None),
+            )
             return {"design_tokens": tpl.design_tokens, "slide_count": tpl.slide_count or 0,
-                    "reused": True}
+                    "space_contract": ((content_row.layout_meta or {}).get("space_contract")
+                                       if content_row else None), "reused": True}
 
         logger.info("模板 %s 需要(重新)解析（解析器 v%d）", tpl.name, PARSER_VERSION)
         with tempfile.TemporaryDirectory(prefix="ppttpl_") as tmp:
@@ -135,5 +141,13 @@ class ParseTemplateStage(Stage):
                                      layout_meta=s["layout_meta"]))
         ctx.set_cached("template", None)
         ctx.set_cached("template_slides", None)
+        content_slide = max(
+            (slide for slide in parsed["slides"] if slide["slide_type"] == "content_frame"),
+            key=lambda slide: slide["confidence"],
+            default=(parsed["slides"][0] if parsed["slides"] else None),
+        )
         return {"design_tokens": parsed["design_tokens"],
-                "slide_count": parsed["slide_count"], "reused": False}
+                "slide_count": parsed["slide_count"],
+                "space_contract": ((content_slide["layout_meta"] or {}).get("space_contract")
+                                   if content_slide else None),
+                "reused": False}

@@ -399,6 +399,55 @@ export default function SuccessView({
                 </Card>
               )}
 
+              {report.composition && (
+                <Card size="small" title="构图与整册节奏">
+                  <Row gutter={[12, 12]}>
+                    <Col span={8}>
+                      <Statistic title="节奏分" value={report.composition.deck_rhythm_score} />
+                    </Col>
+                    <Col span={8}>
+                      <Statistic
+                        title="主导布局占比"
+                        value={Math.round(report.composition.dominant_family_ratio * 100)}
+                        suffix="%"
+                      />
+                    </Col>
+                    <Col span={8}>
+                      <Statistic
+                        title="关键页应用"
+                        value={report.composition.key_slides_applied.length}
+                        suffix={`/ ${report.composition.key_slides_selected.length}`}
+                      />
+                    </Col>
+                  </Row>
+                  <Descriptions
+                    size="small"
+                    column={1}
+                    style={{ marginTop: 12 }}
+                    items={[
+                      {
+                        key: 'guard',
+                        label: '硬约束',
+                        children: `边距 ${report.composition.margin_violations} · 字体 ${report.composition.typography_violations}`,
+                      },
+                      {
+                        key: 'repeat',
+                        label: '相邻重复',
+                        children: report.composition.adjacent_fingerprint_duplicates,
+                      },
+                      {
+                        key: 'fallback',
+                        label: '关键页回退',
+                        children:
+                          report.composition.key_slides_fallback.length > 0
+                            ? report.composition.key_slides_fallback.map((page) => `P${page}`).join('、')
+                            : '无',
+                      },
+                    ]}
+                  />
+                </Card>
+              )}
+
               {report.checks && Object.keys(report.checks).length > 0 && (
                 <Descriptions
                   title="分项检查"

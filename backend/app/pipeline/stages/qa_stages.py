@@ -6,6 +6,7 @@ REPAIR：文案类问题 → LLM 定向压缩改写（标准 ≤1 轮 / 专业 �
 """
 import base64
 import time
+from collections import Counter
 
 from app.core.config import get_settings
 from app.core.database import db_session
@@ -105,6 +106,49 @@ def build_report(ctx: JobContext, extra_issues: list[dict] | None = None) -> dic
                          "hit_rate": (ctx.data.get("MATCH") or {}).get("template_hit_rate")},
         },
         "issues": issues[:200],
+    }
+
+    # ---- 构图与整册节奏（独立于历史 quality/visual 分，保持兼容） ----
+    compose = ctx.data.get("COMPOSE") or {}
+    records = list((compose.get("composition_by_page") or {}).values())
+    guard_issues = [issue for record in records for issue in record.get("guard_issues", [])]
+    margin_violations = sum(
+        1 for issue in guard_issues if str(issue.get("code", "")).startswith("margin_")
+    )
+    typography_violations = sum(
+        1 for issue in guard_issues
+        if str(issue.get("code", "")).startswith("font_")
+        or "typography" in str(issue.get("code", ""))
+    )
+    deck_issues = compose.get("deck_issues") or []
+    adjacent_duplicates = sum(
+        1 for issue in deck_issues if issue.get("code") == "adjacent_fingerprint_duplicate"
+    )
+    focal_streaks = sum(
+        1 for issue in deck_issues if issue.get("code") == "focal_position_streak"
+    )
+    families = [record.get("family") for record in records if record.get("family")]
+    dominant_ratio = (
+        Counter(families).most_common(1)[0][1] / len(families) if families else 0.0
+    )
+    from app.ppt.visual_score import score_composition_rhythm
+
+    key_slides = ctx.data.get("KEY_SLIDE_DESIGN") or {}
+    report["composition"] = {
+        "margin_violations": margin_violations,
+        "typography_violations": typography_violations,
+        "adjacent_fingerprint_duplicates": adjacent_duplicates,
+        "dominant_family_ratio": round(dominant_ratio, 3),
+        "deck_rhythm_score": score_composition_rhythm(
+            margin_violations,
+            typography_violations,
+            adjacent_duplicates,
+            dominant_ratio if len(families) >= 4 else 0.0,
+            focal_streaks,
+        ),
+        "key_slides_selected": key_slides.get("selected") or [],
+        "key_slides_applied": key_slides.get("applied") or [],
+        "key_slides_fallback": key_slides.get("fallback") or [],
     }
 
     # ---- 视觉九维明细（visual_score，与 quality_score 并列展示、不互相替代） ----

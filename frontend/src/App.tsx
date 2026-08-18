@@ -5,6 +5,7 @@ import {
   AppstoreOutlined,
   HighlightOutlined,
   PlusCircleOutlined,
+  RocketOutlined,
   UnorderedListOutlined,
 } from '@ant-design/icons';
 import { checkHealth } from './api/endpoints';
@@ -13,6 +14,7 @@ import JobNew from './pages/JobNew';
 import JobDetail from './pages/job-detail/JobDetail';
 import Templates from './pages/Templates';
 import Beautify from './pages/Beautify';
+import PptMaster from './pages/PptMaster';
 
 const { Header, Content } = Layout;
 
@@ -43,9 +45,11 @@ export default function App() {
     ? 'templates'
     : location.pathname.startsWith('/beautify')
       ? 'beautify'
-      : location.pathname === '/jobs/new'
-        ? 'new'
-        : 'jobs';
+      : location.pathname.startsWith('/pptmaster')
+        ? 'pptmaster'
+        : location.pathname === '/jobs/new'
+          ? 'new'
+          : 'jobs';
 
   return (
     <Layout style={{ minHeight: '100vh' }}>
@@ -73,6 +77,7 @@ export default function App() {
             { key: 'new', icon: <PlusCircleOutlined />, label: <Link to="/jobs/new">新建生成</Link> },
             { key: 'templates', icon: <AppstoreOutlined />, label: <Link to="/templates">模板库</Link> },
             { key: 'beautify', icon: <HighlightOutlined />, label: <Link to="/beautify">PPT美化</Link> },
+            { key: 'pptmaster', icon: <RocketOutlined />, label: <Link to="/pptmaster">ppt-master生成</Link> },
           ]}
         />
         <Space>
@@ -93,6 +98,7 @@ export default function App() {
           <Route path="/jobs/:id" element={<JobDetail />} />
           <Route path="/templates" element={<Templates />} />
           <Route path="/beautify" element={<Beautify />} />
+          <Route path="/pptmaster" element={<PptMaster />} />
           <Route path="*" element={<Navigate to="/jobs" replace />} />
         </Routes>
       </Content>

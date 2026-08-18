@@ -293,3 +293,44 @@ class BeautifyRecord(Base, TimestampMixin):
     score_before: Mapped[int | None] = mapped_column(Integer)   # 九维视觉分（美化前）
     score_after: Mapped[int | None] = mapped_column(Integer)    # 九维视觉分（美化后）
     fixes: Mapped[dict | None] = mapped_column(JSON)            # 修复统计（对齐/网格/黑字）
+
+
+class PptMasterJob(Base, TimestampMixin):
+    """ppt-master 生成任务（独立于生成流水线：以子进程驱动 Agent 在 ppt-master 仓库内执行）。
+
+    异步提交 → 轮询状态；产物（PPTX/预览/日志）上传对象存储，键前缀 pptmaster/{biz_id}/。
+    """
+    __tablename__ = "pptmaster_jobs"
+    __table_args__ = (Index("idx_pm_jobs_status_created", "status", "created_at"),)
+
+    id: Mapped[int] = mapped_column(BigInteger, primary_key=True)
+    biz_id: Mapped[str] = mapped_column(String(32), unique=True, index=True)
+    title: Mapped[str] = mapped_column(String(256))
+    input_mode: Mapped[str] = mapped_column(String(16))          # files|topic|text|url
+    route: Mapped[str] = mapped_column(String(24))               # generate|template_fill|beautify|enhance|image_to_pptx|create_template
+    profile: Mapped[str] = mapped_column(String(16))             # quick|default
+    agent: Mapped[str] = mapped_column(String(16))               # claude|codex|mock
+    model: Mapped[str | None] = mapped_column(String(64))
+    params: Mapped[dict] = mapped_column(JSON, default=dict)     # 提交时全部参数
+    prompt: Mapped[str | None] = mapped_column(Text)             # 实际发给 Agent 的提示词
+    status: Mapped[str] = mapped_column(String(16), default="pending", index=True)
+    # pending|running|succeeded|failed|canceled
+    progress: Mapped[int] = mapped_column(SmallInteger, default=0)
+    stage: Mapped[str | None] = mapped_column(String(128))       # 当前阶段中文描述
+    log_tail: Mapped[str | None] = mapped_column(Text)           # 最近约 4KB 日志
+    error_message: Mapped[str | None] = mapped_column(Text)
+    source_files: Mapped[list] = mapped_column(JSON, default=list)   # [{name,size,key}]
+    template_name: Mapped[str | None] = mapped_column(String(256))
+    template_key: Mapped[str | None] = mapped_column(String(512))
+    outputs: Mapped[list] = mapped_column(JSON, default=list)        # [{kind,name,size,key}]
+    preview_keys: Mapped[list] = mapped_column(JSON, default=list)   # 逐页预览对象键（svg/png）
+    log_key: Mapped[str | None] = mapped_column(String(512))
+    page_count: Mapped[int | None] = mapped_column(Integer)
+    file_size: Mapped[int | None] = mapped_column(BigInteger)
+    project_dir: Mapped[str | None] = mapped_column(String(512))     # Worker 本地工作区路径
+    agent_pid: Mapped[int | None] = mapped_column(Integer)
+    cancel_requested: Mapped[bool] = mapped_column(Boolean, default=False)
+    started_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True))
+    finished_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True))
+    duration_ms: Mapped[int | None] = mapped_column(Integer)
+    deleted_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True))

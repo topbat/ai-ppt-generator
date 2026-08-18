@@ -6,6 +6,8 @@
 > 思想来源：tmp/AI 辅助美化.md（12 维排版认知 / Design Token / 视觉评分模型 / 两阶段架构）
 > 关联文档：[03-IMPLEMENTATION.md](03-IMPLEMENTATION.md)（快速生成架构）
 
+> 当前实现边界：规则九维评分和确定性美化已落地；`VISION_QA_ENABLED` 默认是 `false`，只有显式开启并提供可用视觉模型配置时，专业模式才调用 Vision Critic。独立 `POST /api/v1/beautify` 是同步接口，直接返回报告和后端代理下载地址，不进入 Celery 主生成队列。
+
 ---
 
 ## 1. 定位：两阶段架构
@@ -77,6 +79,18 @@ color_roles:           # 色彩角色（从模板采收后映射，每页 主色
   - 密度低（≤2 信息点）的 title_content 自动升格为"大标题页"（40pt 居中）或"大数字页"；
   - 要点含明显时序词 → 建议 timeline；含层级词 → 建议 architecture（PLAN 阶段提示词强化）。
 
+### 3.1 企业模板空间契约与布局语法（已实现）
+
+模板解析器 v6 为每个模板页生成 `TemplateSpaceContract`：页面尺寸、带四边内距的正文安全区、logo/页脚保护区、12列网格和 gutter。渲染优先使用该安全区；标题几何异常（例如整页背景误识别为标题）会在契约入口被拒绝并使用保守默认区域。
+
+标准/专业模式在内容与渲染之间新增 14 套布局语法，分属 `single_focus / split / cards_grid / flow / structure / data_focus / editorial` 七个家族。语法使用 0..1 归一化坐标，运行时投影到模板安全区；文本容器至少保留上下 0.18in、左右 0.22in 内距，并在绘制前执行页面边界、四边内距和保护区碰撞检查。
+
+内容容量处理顺序固定为：保留结论/事实 → 保留主要解释 → 把支持材料移动到演讲者备注。不会通过缩小正文到 16pt 以下解决溢出。迁移前后页面数字集合必须一致，所有核验数字和受保护专有名称必须仍然存在。
+
+整册重复度以构图指纹控制，指纹包含布局家族、语法、区域数量、镜像、焦点位置和背景。相邻指纹不得相同；单一布局家族在有替代候选时不超过 30%；三页窗口不得保持同一焦点位置。质检报告以独立 `composition` 区块展示这些指标，不改变既有 quality score 和九维 visual score。
+
+专业模式的关键页自由设计使用受约束 SceneSpec，而非任意 SVG：图元只允许 text/shape/chart/table/connector，每个图元必须引用冻结 content_id，文本必须逐字相等，样式只能引用模板批准 Token。关键页 Agent 失败只影响当前页，并自动回到已验证的普通布局。
+
 ## 4. 视觉评分模型（PPT Visual Score，独立于生成质量分）
 
 九维 100 分制（思想文档 §36），逐页评分 + 整册汇总：
@@ -134,7 +148,7 @@ VISUAL_SCORE（规则9维评分，逐页）
 |---|---|
 | ⚡ 极速 | 仅 Token 化渲染（一次性正确），不跑 BEAUTIFY 闭环 |
 | 🚀 标准 | BEAUTIFY 规则闭环 ≤2 轮 |
-| 💎 专业 | BEAUTIFY 规则闭环 ≤2 轮 + Vision Critic 1 轮 |
+| 💎 专业 | BEAUTIFY 规则闭环 ≤2 轮 +（开启 `VISION_QA_ENABLED` 时）Vision Critic 1 轮 |
 
 新增 stage：`BEAUTIFY`（位于 RENDER 之后、CONVERT 之前；与 REPAIR 独立——REPAIR 管"对不对"，BEAUTIFY 管"好不好看"）。
 
@@ -178,11 +192,11 @@ VISUAL_SCORE（规则9维评分，逐页）
 | Design Token | `backend/app/ppt/design_tokens.py` | 字号/间距/圆角/中性色 + `col(i,span)` 12列网格 + `ANCHOR_X` 锚线 + `snap8` |
 | 评分引擎 | `backend/app/ppt/visual_score.py` | 九维规则引擎：输入 Presentation JSON + 渲染产物 PPTX 真实几何，逐页评分+整册汇总+中文扣分明细 |
 | Fix Ops | `backend/app/ppt/visual_ops.py` | 受控 DSL（6 个枚举 op）+ 确定性调整器（spec 级）+ `polish_pptx` 几何微调（pptx 级） |
-| BEAUTIFY 阶段 | `backend/app/pipeline/stages/beautify_stage.py` | 闭环 ≤2 轮/分数必须上升/取历史最优/≥90 提前收束；专业模式 Vision Critic；`compute_visual_once` 供极速模式 QA 一次性出分 |
+| BEAUTIFY 阶段 | `backend/app/pipeline/stages/beautify_stage.py` | 闭环 ≤2 轮/分数必须上升/取历史最优/≥90 提前收束；专业模式按开关调用 Vision Critic；`compute_visual_once` 供极速模式 QA 一次性出分 |
 | 一键美化 | `backend/app/services/beautify_service.py` + `jobs_api.py` | fork 子任务：复制 checkpoint 到子命名空间（不污染父产物）→ resume 只跑 RENDER 之后 |
 | 前端 | `SuccessView.tsx` / `JobDetail.tsx` / `types.ts` / `endpoints.ts` | 一键美化按钮、视觉分标签、报告抽屉九维条形图+逐页评分 |
 | 对外美化 API | `backend/app/ppt/beautify_external.py` + `api/beautify_api.py` | `POST /api/v1/beautify`：上传任意 PPTX → 伪 Spec 构建（解析器逐页定型）→ 九维评分 → 确定性美化（锚线/8pt 吸附 + 纯黑正文替换，复评不升则回退）→ 报告 + 产物下载；模板库"PPT 美化演示"入口即调用本 API |
-| 测试 | `backend/tests/test_visual.py` | 评分/DSL/调整器/闭环/稳定性 五项冒烟（不依赖 DB/LLM） |
+| 测试 | `backend/tests/test_visual.py` | 评分/DSL/调整器/闭环/稳定性 五项冒烟（不依赖 DB/LLM，按脚本直接运行） |
 
 ### 9.2 与设计的差异说明
 

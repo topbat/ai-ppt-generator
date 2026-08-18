@@ -20,6 +20,8 @@ services:
     ports:
       - "8000:8000"          # 便于本地直连调试，可按需移除
     env_file: .env
+    environment:
+      PPTMASTER_EXECUTION_SCOPE: worker
     depends_on:
       postgres:
         condition: service_healthy
@@ -55,6 +57,33 @@ services:
       resources:
         limits:
           memory: 2G
+    restart: unless-stopped
+
+  # ppt-master 生成 Worker（可选能力：docker compose --profile pptmaster up -d --build pptmaster-worker）
+  # 镜像内置 Node + Claude Code / Codex CLI + ppt-master 仓库；.env 需提供 ANTHROPIC_API_KEY / OPENAI_API_KEY，
+  # 以及 PPTMASTER_* 配置。工作区挂到命名卷 pptmaster-projects，任务产物同时上传 MinIO。
+  pptmaster-worker:
+    build:
+      context: ../backend
+      target: pptmaster-worker
+    profiles: ["pptmaster"]
+    env_file: .env
+    environment:
+      PPTMASTER_REPO_DIR: /opt/ppt-master
+      PPTMASTER_EXECUTION_SCOPE: worker
+    volumes:
+      - pptmaster-projects:/opt/ppt-master/projects
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+      minio:
+        condition: service_healthy
+    deploy:
+      resources:
+        limits:
+          memory: 3G
     restart: unless-stopped
 
   postgres:
@@ -122,3 +151,4 @@ volumes:
   pgdata:
   redisdata:
   miniodata:
+  pptmaster-projects:

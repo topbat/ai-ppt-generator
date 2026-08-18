@@ -59,6 +59,7 @@ class LayoutStage(Stage):
         pages = ctx.get_pages_content()
         tokens = ctx.data["PARSE_TPL"]["design_tokens"]
         matches = ctx.data["MATCH"]["matches"]
+        composition = (ctx.data.get("COMPOSE") or {}).get("composition_by_page") or {}
 
         theme = ThemeSpec(
             primary=tokens.get("primary", "1677FF"), secondary=tokens.get("secondary", "13234E"),
@@ -73,6 +74,7 @@ class LayoutStage(Stage):
         for p in plan:
             c = pages.get(str(p["page"])) or {}
             row = slide_rows.get(p["page"])
+            composed = composition.get(str(p["page"])) or {}
             try:
                 slides.append(SlideSpec(
                     page=p["page"], chapter_id=f"ch{p.get('chapter_idx') or 0}",
@@ -80,7 +82,10 @@ class LayoutStage(Stage):
                     title=c.get("title", p.get("title", "")), subtitle=c.get("subtitle"),
                     key_message=p.get("key_message"), section_no=c.get("section_no") or p.get("section_no"),
                     elements=c.get("elements", []),
-                    sources=(row.sources if row else []) or []))
+                    sources=(row.sources if row else []) or [],
+                    visual_plan=composed.get("visual_plan") or c.get("visual_plan"),
+                    layout_recipe=composed.get("recipe_id"),
+                    speaker_notes=c.get("speaker_notes")))
             except Exception as e:
                 # 单页 Schema 非法 → 降级要点页（不阻塞）
                 logger.warning("第 %d 页 Schema 校验失败，降级为要点页: %s", p["page"], e)
