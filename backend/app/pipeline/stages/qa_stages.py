@@ -216,7 +216,8 @@ class QAStage(Stage):
             gw = get_gateway()
             from app.ai.gateway import provider_of
             vision_model = get_settings().llm_model_vision  # 具体模型由环境变量指定
-            resp = gw._client(provider_of(vision_model)).chat.completions.create(
+            resp = gw.complete(provider_of(vision_model), job_id=ctx.job_pk,
+                task_type="vision_qa", mode=ctx.mode,
                 model=vision_model, messages=[{"role": "user", "content": content}],
                 max_tokens=1500)
             parsed = repair_json(resp.choices[0].message.content or "")

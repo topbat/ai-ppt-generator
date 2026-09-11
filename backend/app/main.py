@@ -36,6 +36,8 @@ async def lifespan(app: FastAPI):
         logger.error("AI 模板初始化播种失败（可通过 AI 生成入口补建）：%s", e)
     logger.info("API 服务启动完成")
     yield
+    from app.observability import flush
+    flush()
 
 
 def _ensure_ai_seed_templates():
@@ -103,6 +105,7 @@ async def unknown_handler(_req: Request, exc: Exception):
 
 # ---- 路由注册 ----
 from app.api.admin_api import router as admin_router          # noqa: E402
+from app.api.metrics_api import router as metrics_router      # noqa: E402
 from app.api.beautify_api import router as beautify_router    # noqa: E402
 from app.api.documents_api import router as documents_router  # noqa: E402
 from app.api.events_api import router as events_router        # noqa: E402
@@ -119,4 +122,5 @@ app.include_router(events_router, prefix=API_PREFIX)   # 先注册：/jobs/{id}/
 app.include_router(jobs_router, prefix=API_PREFIX)
 app.include_router(pptmaster_router, prefix=API_PREFIX)   # ppt-master 生成（独立能力）
 app.include_router(admin_router, prefix=API_PREFIX)
+app.include_router(metrics_router, prefix=API_PREFIX)
 app.include_router(health_router)  # /healthz /readyz 挂根路径

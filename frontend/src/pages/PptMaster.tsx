@@ -1,4 +1,5 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import JobUsage from '../components/JobUsage';
 import {
   Alert,
   Button,
@@ -1234,6 +1235,7 @@ function DetailDrawer({
             column={2}
             items={[
               { key: 'id', label: '任务 ID', children: <Typography.Text copyable>{detail.job_id}</Typography.Text> },
+              { key: 'observability', label: '模型消耗', span: 3, children: <JobUsage engine="pptmaster" jobId={detail.job_id} /> },
               { key: 'input', label: '输入方式', children: labelOf(options?.input_modes, detail.input_mode) },
               { key: 'route', label: '生成路线', children: labelOf(options?.routes, detail.route) },
               { key: 'profile', label: '生成档位', children: labelOf(options?.profiles, detail.profile) },

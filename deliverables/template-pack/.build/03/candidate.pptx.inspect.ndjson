@@ -1,0 +1,100 @@
+{"kind":"deck","id":"pr/nrzfds","name":"Deck"}
+{"kind":"layout","layoutId":"2046938e-1243-4e8c-bdca-035c734b8c04","name":"Master","type":"master"}
+{"kind":"layout","layoutId":"8b89217f-3087-4848-8063-cab2b88c7f59","name":"Title Slide","type":"title"}
+{"kind":"slide","id":"sl/cg3rq6","slide":1,"title":"组织名称","textShapes":6}
+{"kind":"textbox","id":"sh/qxsru5gf","slide":1,"name":"组织名称","text":"组织名称","textPreview":"组织名称","textChars":4,"textLines":1,"bbox":[72,42,480,40]}
+{"kind":"textbox","id":"sh/d0jap0fq","slide":1,"name":"英文分类","text":"PRODUCT OVERVIEW","textPreview":"PRODUCT OVERVIEW","textChars":16,"textLines":1,"bbox":[72,182,1040,44]}
+{"kind":"textbox","id":"sh/cza9wfy5","slide":1,"name":"主标题","text":"产品与解决方案","textPreview":"产品与解决方案","textChars":7,"textLines":1,"bbox":[72,270,1090,118]}
+{"kind":"textbox","id":"sh/z21sraxw","slide":1,"name":"副标题","text":"产品名称 / 产品版本 / 演示日期","textPreview":"产品名称 / 产品版本 / 演示日期","textChars":18,"textLines":1,"bbox":[76,425,1000,52]}
+{"kind":"textbox","id":"sh/e1sry5gb","slide":1,"name":"日期","text":"汇报日期：YYYY.MM.DD","textPreview":"汇报日期：YYYY.MM.DD","textChars":15,"textLines":1,"bbox":[76,614,800,32]}
+{"kind":"textbox","id":"sh/143atkf2","slide":1,"name":"模板编号","text":"TEMPLATE 03","textPreview":"TEMPLATE 03","textChars":11,"textLines":1,"bbox":[1034,614,190,32]}
+{"kind":"notes","id":"nt/cg3rq6","slide":1,"text":""}
+{"kind":"slide","id":"sl/y8ique","slide":2,"title":"组织名称","textShapes":13}
+{"kind":"textbox","id":"sh/tkzydwvy","slide":2,"name":"组织名称","text":"组织名称","textPreview":"组织名称","textChars":4,"textLines":1,"bbox":[64,25,300,25]}
+{"kind":"textbox","id":"sh/6hof2hc7","slide":2,"name":"页码","text":"02 / 08","textPreview":"02 / 08","textChars":7,"textLines":1,"bbox":[1110,25,105,25]}
+{"kind":"textbox","id":"sh/7ixgbmds","slide":2,"name":"页面标题","text":"内容目录","textPreview":"内容目录","textChars":4,"textLines":1,"bbox":[64,86,1148,72]}
+{"kind":"shape","id":"sh/gnqx8ru9","slide":2,"name":"分隔线","bbox":[64,177,1152,1]}
+{"kind":"textbox","id":"sh/hozyhwvu","slide":2,"name":"模板说明","text":"模板示例 · 请替换内容","textPreview":"模板示例 · 请替换内容","textChars":12,"textLines":1,"bbox":[64,673,670,24]}
+{"kind":"textbox","id":"sh/ul8f61cj","slide":2,"name":"页面类型","text":"目录页","textPreview":"目录页","textChars":3,"textLines":1,"bbox":[988,673,230,24]}
+{"kind":"textbox","id":"sh/vmhgfmdo","slide":2,"name":"章节序号_0","text":"01","textPreview":"01","textChars":2,"textLines":1,"bbox":[88,216,100,62]}
+{"kind":"textbox","id":"sh/4bqhcbul","slide":2,"name":"章节标题_0","text":"客户需求","textPreview":"客户需求","textChars":4,"textLines":1,"bbox":[220,218,905,60]}
+{"kind":"shape","id":"sh/5cjylgv6","slide":2,"name":"分隔线","bbox":[220,296,920,1]}
+{"kind":"textbox","id":"sh/587ih47i","slide":2,"name":"章节序号_1","text":"02","textPreview":"02","textChars":2,"textLines":1,"bbox":[88,317,100,62]}
+{"kind":"textbox","id":"sh/k7ehoj6x","slide":2,"name":"章节标题_1","text":"产品能力","textPreview":"产品能力","textChars":4,"textLines":1,"bbox":[220,319,905,60]}
+{"kind":"shape","id":"sh/j650fepc","slide":2,"name":"分隔线","bbox":[220,397,920,1]}
+{"kind":"textbox","id":"sh/i5wzm9or","slide":2,"name":"章节序号_2","text":"03","textPreview":"03","textChars":2,"textLines":1,"bbox":[88,418,100,62]}
+{"kind":"textbox","id":"sh/tw7ilo7e","slide":2,"name":"章节标题_2","text":"应用场景","textPreview":"应用场景","textChars":4,"textLines":1,"bbox":[220,420,905,60]}
+{"kind":"shape","id":"sh/svyhsj69","slide":2,"name":"分隔线","bbox":[220,498,920,1]}
+{"kind":"textbox","id":"sh/7up0jepo","slide":2,"name":"章节序号_3","text":"04","textPreview":"04","textChars":2,"textLines":1,"bbox":[88,519,100,62]}
+{"kind":"textbox","id":"sh/6tgzq9o3","slide":2,"name":"章节标题_3","text":"实施服务","textPreview":"实施服务","textChars":4,"textLines":1,"bbox":[220,521,905,60]}
+{"kind":"notes","id":"nt/y8ique","slide":2,"text":""}
+{"kind":"slide","id":"sl/2lkowy","slide":3,"title":"01","textShapes":4}
+{"kind":"textbox","id":"sh/udorml4j","slide":3,"name":"章节编号","text":"01","textPreview":"01","textChars":2,"textLines":1,"bbox":[72,68,480,180]}
+{"kind":"textbox","id":"sh/hgfax0nu","slide":3,"name":"章节标题","text":"核心能力与使用体验","textPreview":"核心能力与使用体验","textChars":9,"textLines":1,"bbox":[76,315,1128,100]}
+{"kind":"textbox","id":"sh/gf69ovmp","slide":3,"name":"章节摘要","text":"填写本章节的核心内容与讨论范围","textPreview":"填写本章节的核心内容与讨论范围","textChars":15,"textLines":1,"bbox":[80,465,1050,58]}
+{"kind":"textbox","id":"sh/7qd8r65s","slide":3,"name":"模板说明","text":"组织名称 / 章节过渡页","textPreview":"组织名称 / 章节过渡页","textChars":12,"textLines":1,"bbox":[80,655,700,28]}
+{"kind":"notes","id":"nt/2lkowy","slide":3,"text":""}
+{"kind":"slide","id":"sl/2rnvrm","slide":4,"title":"组织名称","textShapes":19}
+{"kind":"textbox","id":"sh/h07ehs7y","slide":4,"name":"组织名称","text":"组织名称","textPreview":"组织名称","textChars":4,"textLines":1,"bbox":[64,25,300,25]}
+{"kind":"textbox","id":"sh/axwf6do7","slide":4,"name":"页码","text":"04 / 08","textPreview":"04 / 08","textChars":7,"textLines":1,"bbox":[1110,25,105,25]}
+{"kind":"textbox","id":"sh/vypwfips","slide":4,"name":"页面标题","text":"客户需求与产品价值","textPreview":"客户需求与产品价值","textChars":9,"textLines":1,"bbox":[64,86,1148,72]}
+{"kind":"shape","id":"sh/8ved436h","slide":4,"name":"分隔线","bbox":[64,177,1152,1]}
+{"kind":"textbox","id":"sh/9wned872","slide":4,"name":"模板说明","text":"模板示例 · 请替换内容","textPreview":"模板示例 · 请替换内容","textChars":12,"textLines":1,"bbox":[64,673,670,24]}
+{"kind":"textbox","id":"sh/m9wv2dob","slide":4,"name":"页面类型","text":"双栏内容页","textPreview":"双栏内容页","textChars":5,"textLines":1,"bbox":[988,673,230,24]}
+{"kind":"textbox","id":"sh/nu5wbypw","slide":4,"name":"左栏标题","text":"客户需求","textPreview":"客户需求","textChars":4,"textLines":1,"bbox":[76,216,510,51]}
+{"kind":"textbox","id":"sh/07ed0365","slide":4,"name":"右栏标题","text":"对应能力","textPreview":"对应能力","textChars":4,"textLines":1,"bbox":[688,216,510,51]}
+{"kind":"textbox","id":"sh/l8ne987q","slide":4,"name":"要点编号_0","text":"01","textPreview":"01","textChars":2,"textLines":1,"bbox":[76,300,48,32]}
+{"kind":"textbox","id":"sh/9s72dova","slide":4,"name":"内容要点_0","text":"典型用户面临的问题","textPreview":"典型用户面临的问题","textChars":9,"textLines":1,"bbox":[136,300,450,67]}
+{"kind":"textbox","id":"sh/87yl4jep","slide":4,"name":"要点编号_1","text":"02","textPreview":"02","textChars":2,"textLines":1,"bbox":[76,402,48,32]}
+{"kind":"textbox","id":"sh/n6pkbed4","slide":4,"name":"内容要点_1","text":"现有流程中的效率瓶颈","textPreview":"现有流程中的效率瓶颈","textChars":10,"textLines":1,"bbox":[136,402,450,67]}
+{"kind":"textbox","id":"sh/m5w329wj","slide":4,"name":"要点编号_2","text":"03","textPreview":"03","textChars":2,"textLines":1,"bbox":[76,504,48,32]}
+{"kind":"textbox","id":"sh/l4n29ofy","slide":4,"name":"内容要点_2","text":"使用体验与协作需求","textPreview":"使用体验与协作需求","textChars":9,"textLines":1,"bbox":[136,504,450,67]}
+{"kind":"textbox","id":"sh/03el0jed","slide":4,"name":"要点编号_0","text":"01","textPreview":"01","textChars":2,"textLines":1,"bbox":[688,300,48,32]}
+{"kind":"textbox","id":"sh/z25k7exs","slide":4,"name":"内容要点_0","text":"解决问题的核心功能","textPreview":"解决问题的核心功能","textChars":9,"textLines":1,"bbox":[748,300,450,67]}
+{"kind":"textbox","id":"sh/y1w3y9wn","slide":4,"name":"要点编号_1","text":"02","textPreview":"02","textChars":2,"textLines":1,"bbox":[688,402,48,32]}
+{"kind":"textbox","id":"sh/d0n254f2","slide":4,"name":"内容要点_1","text":"与现有系统的配合方式","textPreview":"与现有系统的配合方式","textChars":10,"textLines":1,"bbox":[748,402,450,67]}
+{"kind":"textbox","id":"sh/cze1wzeh","slide":4,"name":"要点编号_2","text":"03","textPreview":"03","textChars":2,"textLines":1,"bbox":[688,504,48,32]}
+{"kind":"textbox","id":"sh/4jylszmd","slide":4,"name":"内容要点_2","text":"可验证的价值与收益","textPreview":"可验证的价值与收益","textChars":9,"textLines":1,"bbox":[748,504,450,67]}
+{"kind":"notes","id":"nt/2rnvrm","slide":4,"text":""}
+{"kind":"slide","id":"sl/8zutq6","slide":5,"title":"组织名称","textShapes":9}
+{"kind":"textbox","id":"sh/2lw7ulw7","slide":5,"name":"组织名称","text":"组织名称","textPreview":"组织名称","textChars":4,"textLines":1,"bbox":[64,25,300,25]}
+{"kind":"textbox","id":"sh/ponq5gfy","slide":5,"name":"页码","text":"05 / 08","textPreview":"05 / 08","textChars":7,"textLines":1,"bbox":[1110,25,105,25]}
+{"kind":"textbox","id":"sh/onepwbed","slide":5,"name":"页面标题","text":"使用效果对比","textPreview":"使用效果对比","textChars":6,"textLines":1,"bbox":[64,86,1148,72]}
+{"kind":"shape","id":"sh/fyl8z6xw","slide":5,"name":"分隔线","bbox":[64,177,1152,1]}
+{"kind":"textbox","id":"sh/exc7q1wb","slide":5,"name":"模板说明","text":"模板示例 · 请替换内容","textPreview":"模板示例 · 请替换内容","textChars":12,"textLines":1,"bbox":[64,673,670,24]}
+{"kind":"textbox","id":"sh/1knq1gfm","slide":5,"name":"页面类型","text":"原生图表页","textPreview":"原生图表页","textChars":5,"textLines":1,"bbox":[988,673,230,24]}
+{"kind":"textbox","id":"sh/0jupsbeh","slide":5,"name":"数据声明","text":"示例数据，非真实业务结果；单位：示例值","textPreview":"示例数据，非真实业务结果；单位：示例值","textChars":19,"textLines":1,"bbox":[74,203,1020,33]}
+{"kind":"textbox","id":"sh/ytgr25wf","slide":5,"name":"结论标题","text":"分析结论","textPreview":"分析结论","textChars":4,"textLines":1,"bbox":[928,270,286,44]}
+{"kind":"textbox","id":"sh/wb6h0ryl","slide":5,"name":"结论正文","text":"填写变化趋势\n解释主要原因\n说明业务影响","textPreview":"填写变化趋势 | 解释主要原因 | 说明业务影响","textChars":20,"textLines":3,"bbox":[928,340,278,180]}
+{"kind":"textbox","id":"sh/hcfitwz6","slide":5,"name":"来源标注","text":"数据来源：待填写","textPreview":"数据来源：待填写","textChars":8,"textLines":1,"bbox":[928,571,278,44]}
+{"kind":"chart","id":"ch/fu5o3mdk","slide":5,"name":"","chartType":"bar","bbox":[64,260,804,350]}
+{"kind":"notes","id":"nt/8zutq6","slide":5,"text":"本页数值仅为展示原生图表布局的示例，不代表真实业务结果。"}
+{"kind":"slide","id":"sl/c27z7z","slide":6,"title":"组织名称","textShapes":7}
+{"kind":"textbox","id":"sh/t07mlcfi","slide":6,"name":"组织名称","text":"组织名称","textPreview":"组织名称","textChars":4,"textLines":1,"bbox":[64,25,300,25]}
+{"kind":"textbox","id":"sh/6xg3axgr","slide":6,"name":"页码","text":"06 / 08","textPreview":"06 / 08","textChars":7,"textLines":1,"bbox":[1110,25,105,25]}
+{"kind":"textbox","id":"sh/ryp4j2xc","slide":6,"name":"页面标题","text":"产品能力清单","textPreview":"产品能力清单","textChars":6,"textLines":1,"bbox":[64,86,1148,72]}
+{"kind":"shape","id":"sh/g3ylgryt","slide":6,"name":"分隔线","bbox":[64,177,1152,1]}
+{"kind":"textbox","id":"sh/1o7mpwfe","slide":6,"name":"模板说明","text":"模板示例 · 请替换内容","textPreview":"模板示例 · 请替换内容","textChars":12,"textLines":1,"bbox":[64,673,670,24]}
+{"kind":"textbox","id":"sh/e1g3ehg3","slide":6,"name":"页面类型","text":"原生表格页","textPreview":"原生表格页","textChars":5,"textLines":1,"bbox":[988,673,230,24]}
+{"kind":"textbox","id":"sh/f2p4nmx8","slide":6,"name":"表格摘要","text":"填写本页计划、清单或对照关系的说明","textPreview":"填写本页计划、清单或对照关系的说明","textChars":17,"textLines":1,"bbox":[72,205,1136,44]}
+{"kind":"textbox","id":"sh/psrmtwfq","slide":6,"name":"补充说明","text":"补充说明：填写相关约束、依赖条件或更新日期","textPreview":"补充说明：填写相关约束、依赖条件或更新日期","textChars":21,"textLines":1,"bbox":[74,596,1110,42]}
+{"kind":"table","id":"tb/90fmpsr2","slide":6,"name":"","rows":4,"cols":4,"preview":"能力模块 | 解决问题 | 交付形式 | 适用场景","bbox":[72,292,1136,272]}
+{"kind":"notes","id":"nt/c27z7z","slide":6,"text":""}
+{"kind":"slide","id":"sl/izb3se","slide":7,"title":"组织名称","textShapes":9}
+{"kind":"textbox","id":"sh/y9w7e58n","slide":7,"name":"组织名称","text":"组织名称","textPreview":"组织名称","textChars":4,"textLines":1,"bbox":[64,25,300,25]}
+{"kind":"textbox","id":"sh/lc7q9k7e","slide":7,"name":"页码","text":"07 / 08","textPreview":"07 / 08","textChars":7,"textLines":1,"bbox":[1110,25,105,25]}
+{"kind":"textbox","id":"sh/kbepgfqt","slide":7,"name":"页面标题","text":"产品界面与场景","textPreview":"产品界面与场景","textChars":7,"textLines":1,"bbox":[64,86,1148,72]}
+{"kind":"shape","id":"sh/b6583q9c","slide":7,"name":"分隔线","bbox":[64,177,1152,1]}
+{"kind":"textbox","id":"sh/a5w7a58r","slide":7,"name":"模板说明","text":"模板示例 · 请替换内容","textPreview":"模板示例 · 请替换内容","textChars":12,"textLines":1,"bbox":[64,673,670,24]}
+{"kind":"textbox","id":"sh/x8nq50r2","slide":7,"name":"页面类型","text":"图文内容页","textPreview":"图文内容页","textChars":5,"textLines":1,"bbox":[988,673,230,24]}
+{"kind":"textbox","id":"sh/c7epcvqh","slide":7,"name":"可替换图片_横向","text":"图片占位\n产品截图 / 使用场景","textPreview":"图片占位 | 产品截图 / 使用场景","textChars":16,"textLines":2,"bbox":[72,233,688,387]}
+{"kind":"textbox","id":"sh/nilozq90","slide":7,"name":"图文小标题","text":"案例 / 场景名称","textPreview":"案例 / 场景名称","textChars":9,"textLines":1,"bbox":[819,232,387,65]}
+{"kind":"textbox","id":"sh/2hc76l8f","slide":7,"name":"场景描述","text":"填写场景背景\n说明对象与关键过程","textPreview":"填写场景背景 | 说明对象与关键过程","textChars":16,"textLines":2,"bbox":[820,324,384,111]}
+{"kind":"textbox","id":"sh/o7298ji1","slide":7,"name":"场景价值","text":"填写成果价值\n说明需要强调的细节","textPreview":"填写成果价值 | 说明需要强调的细节","textChars":16,"textLines":2,"bbox":[820,471,384,111]}
+{"kind":"notes","id":"nt/izb3se","slide":7,"text":""}
+{"kind":"slide","id":"sl/ax0vsl","slide":8,"title":"产品体验与合作","textShapes":4}
+{"kind":"textbox","id":"sh/a94rqhc7","slide":8,"name":"结束标题","text":"产品体验与合作","textPreview":"产品体验与合作","textChars":7,"textLines":1,"bbox":[74,165,1134,112]}
+{"kind":"textbox","id":"sh/xcfqlwvy","slide":8,"name":"结束摘要","text":"演示安排 · 试用范围 · 联系方式","textPreview":"演示安排 · 试用范围 · 联系方式","textChars":18,"textLines":1,"bbox":[80,322,1116,70]}
+{"kind":"textbox","id":"sh/cb69srud","slide":8,"name":"下一步说明","text":"填写最重要的下一步安排","textPreview":"填写最重要的下一步安排","textChars":11,"textLines":1,"bbox":[80,438,1100,61]}
+{"kind":"textbox","id":"sh/zex8n6do","slide":8,"name":"联系信息","text":"联系人 / 部门 / 联系方式","textPreview":"联系人 / 部门 / 联系方式","textChars":15,"textLines":1,"bbox":[80,622,1090,40]}
+{"kind":"notes","id":"nt/ax0vsl","slide":8,"text":""}

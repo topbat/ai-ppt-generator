@@ -13,6 +13,7 @@
 | [04-VISUAL-OPTIMIZATION.md](04-VISUAL-OPTIMIZATION.md) | 整册艺术指导、视觉分镜、布局语法、重复度控制、四边距检查、评分与美化闭环 |
 | [05-PPTMASTER-INTEGRATION.md](05-PPTMASTER-INTEGRATION.md) | PPT-MASTER Agent/SVG 流水线、模型目录、模板风格语义、三并发排队与产物恢复 |
 | [06-DEVELOPMENT-DEPLOYMENT.md](06-DEVELOPMENT-DEPLOYMENT.md) | 环境变量、模型 Key 来源、本地开发、Docker/生产部署、测试和运维 |
+| [07-LANGFUSE.md](07-LANGFUSE.md) | LLM 指标、Langfuse 配置、用量口径、费用估算、鉴权和模拟验收 |
 
 `plans/` 保存已经执行过的设计与实施计划，用于追踪决策来源，不代表当前配置；发生冲突时，以上现行文档和代码优先。
 

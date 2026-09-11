@@ -17,6 +17,7 @@ import { DENSITY_CONFIG } from '../../utils/constants';
 import RunningView from './RunningView';
 import SuccessView from './SuccessView';
 import FailedView from './FailedView';
+import JobUsage from '../../components/JobUsage';
 
 /** SSE 阶段覆盖信息（叠加在 detail.stages 上展示） */
 export interface StageOverride {
@@ -225,6 +226,7 @@ export default function JobDetail() {
       </Card>
 
       {/* 按状态分发视图 */}
+      <JobUsage engine="pipeline" jobId={detail.biz_id} />
       {isActive && (
         <RunningView
           jobId={id}

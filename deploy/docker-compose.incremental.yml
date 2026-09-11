@@ -1,0 +1,22 @@
+# Optional: first tag the existing same-project images as :pre-langfuse.
+# Never use another project's image here. Normal clean builds use Dockerfile.
+services:
+  api:
+    build:
+      dockerfile: Dockerfile.incremental
+      target: runtime
+      args:
+        BASE_IMAGE: ppt-generator-api:pre-langfuse
+  worker:
+    build:
+      dockerfile: Dockerfile.incremental
+      target: runtime
+      args:
+        BASE_IMAGE: ppt-generator-worker:pre-langfuse
+  pptmaster-worker:
+    build:
+      dockerfile: Dockerfile.incremental
+      target: runtime
+      args:
+        BASE_IMAGE: ppt-generator-pptmaster-worker:pre-langfuse
+        RUNTIME_USER: '10001:10001'

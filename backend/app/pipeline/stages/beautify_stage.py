@@ -196,7 +196,8 @@ class BeautifyStage(Stage):
                                 "image_url": {"url": f"data:image/png;base64,{b64}"}})
             gw = get_gateway()
             vision_model = get_settings().llm_model_vision
-            resp = gw._client(provider_of(vision_model)).chat.completions.create(
+            resp = gw.complete(provider_of(vision_model), job_id=ctx.job_pk,
+                task_type="vision_critic", mode=ctx.mode,
                 model=vision_model, messages=[{"role": "user", "content": content}],
                 max_tokens=1500)
             parsed = repair_json(resp.choices[0].message.content or "") or {}

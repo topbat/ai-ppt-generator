@@ -29,6 +29,22 @@ def test_page_guard():
     print(f"✓ PageGuard 通过（12页计划 {len(warnings)} 处修正；8章→10页自动合并 {len(w2)} 处）")
 
 
+def test_page_guard_five_pages_with_ending():
+    """五页是 API 允许的最小页数；含尾页的模板仍必须严格产出五页。"""
+    outline = [{"chapter": "项目背景与目标", "pages": 1, "summary": "完成最小链路验证"}]
+    ai_slides = [{"chapter_idx": 1, "type": "title_content", "title": "核心目标"}]
+
+    plan, warnings = build_page_plan(
+        outline, ai_slides, 5, "最小真实任务", has_ending=True,
+    )
+
+    assert len(plan) == 5
+    assert [slide["type"] for slide in plan] == [
+        "cover", "toc", "section", "title_content", "ending",
+    ]
+    assert any("总结页" in warning for warning in warnings)
+
+
 def test_content_guard():
     raw = {"page": 4, "type": "title_content", "title": "这是一个特别特别特别特别长的超限标题需要截断",
            "elements": [
@@ -120,6 +136,7 @@ def test_json_repair():
 
 if __name__ == "__main__":
     test_page_guard()
+    test_page_guard_five_pages_with_ending()
     test_content_guard()
     test_json_repair()
     test_render_all_layouts()

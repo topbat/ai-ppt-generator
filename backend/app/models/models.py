@@ -15,6 +15,38 @@ from sqlalchemy.orm import Mapped, mapped_column
 from app.core.database import Base
 
 
+class LLMObservation(Base):
+    """新增观测账本；不与旧 llm_calls 合并，事件粒度由 kind 明确。"""
+    __tablename__ = "llm_observations"
+    __table_args__ = (Index("idx_observation_job", "engine", "job_id"),)
+
+    id: Mapped[str] = mapped_column(String(32), primary_key=True)
+    trace_id: Mapped[str] = mapped_column(String(32), index=True)
+    engine: Mapped[str] = mapped_column(String(16), index=True)
+    kind: Mapped[str] = mapped_column(String(16))
+    job_id: Mapped[int | None] = mapped_column(BigInteger)
+    biz_id: Mapped[str | None] = mapped_column(String(64), index=True)
+    stage: Mapped[str] = mapped_column(String(64))
+    task_type: Mapped[str] = mapped_column(String(64))
+    provider: Mapped[str] = mapped_column(String(64))
+    model: Mapped[str] = mapped_column(String(128), index=True)
+    mode: Mapped[str] = mapped_column(String(32))
+    attempt: Mapped[int] = mapped_column(Integer)
+    fallback: Mapped[bool] = mapped_column(Boolean)
+    input_tokens: Mapped[int | None] = mapped_column(BigInteger)
+    output_tokens: Mapped[int | None] = mapped_column(BigInteger)
+    cached_tokens: Mapped[int | None] = mapped_column(BigInteger)
+    cache_creation_tokens: Mapped[int | None] = mapped_column(BigInteger)
+    cost_usd: Mapped[float | None] = mapped_column(Numeric(20, 10))
+    cost_source: Mapped[str] = mapped_column(String(16))
+    usage_source: Mapped[str] = mapped_column(String(16), default='unknown')
+    duration_ms: Mapped[int] = mapped_column(Integer)
+    queue_ms: Mapped[int] = mapped_column(Integer)
+    status: Mapped[str] = mapped_column(String(16))
+    error_type: Mapped[str | None] = mapped_column(String(64))
+    created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), index=True)
+
+
 class TimestampMixin:
     created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), server_default=func.now())
     updated_at: Mapped[datetime] = mapped_column(

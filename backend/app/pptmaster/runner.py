@@ -171,7 +171,8 @@ class BaseRunner:
         self.binary = binary
         self.model = model
 
-    def build_cmd(self, prompt: str, repo_dir: str) -> list[str]:  # pragma: no cover
+    def build_cmd(self, prompt: str, repo_dir: str,
+                  resume_session_id: str | None = None) -> list[str]:  # pragma: no cover
         raise NotImplementedError
 
     def parse_line(self, line: str) -> dict | None:
@@ -192,8 +193,9 @@ class BaseRunner:
 
     def run(self, prompt: str, repo_dir: str, env: dict, log_path: str,
             on_line: LineHook | None = None, should_cancel: Callable[[], bool] | None = None,
-            timeout_s: int = 2400, on_pid: Callable[[int], None] | None = None) -> RunResult:
-        cmd = self.build_cmd(prompt, repo_dir)
+            timeout_s: int = 2400, on_pid: Callable[[int], None] | None = None,
+            resume_session_id: str | None = None) -> RunResult:
+        cmd = self.build_cmd(prompt, repo_dir, resume_session_id=resume_session_id)
         logger.info("启动 Agent [%s]：%s", self.key, " ".join(cmd[:2]) + " …")
         popen_kw: dict = {}
         if not _IS_WIN:
@@ -316,10 +318,13 @@ class ClaudeRunner(BaseRunner):
                     f"{_short(ev.get('result') or '', 800)}")
         return None
 
-    def build_cmd(self, prompt: str, repo_dir: str) -> list[str]:
+    def build_cmd(self, prompt: str, repo_dir: str,
+                  resume_session_id: str | None = None) -> list[str]:
         s = get_settings()
         cmd = [self.binary or "claude", "-p", prompt, "--output-format", "stream-json", "--verbose",
                "--dangerously-skip-permissions"]
+        if resume_session_id:
+            cmd += ["--resume", resume_session_id]
         model = self.model or s.pptmaster_claude_model
         if model:
             cmd += ["--model", model]
@@ -329,25 +334,55 @@ class ClaudeRunner(BaseRunner):
 
     def extract_final(self, events: list[dict], result: RunResult) -> None:
         last_text = ""
+        messages = {}
+        terminal_usage = False
         for ev in events:
+            if ev.get("session_id"):
+                result.extra["session_id"] = str(ev["session_id"])
             if ev.get("type") == "assistant":
+                message = ev.get('message') or {}
+                if message.get('usage'):
+                    key = message.get('id') or f'event-{len(messages)}'
+                    prior = messages.setdefault(key, {})
+                    for field, value in message['usage'].items():
+                        if isinstance(value, int) and not isinstance(value, bool) and value >= 0:
+                            prior[field] = max(prior.get(field, 0), value)
                 for blk in (ev.get("message") or {}).get("content") or []:
                     if isinstance(blk, dict) and blk.get("type") == "text" and blk.get("text"):
                         last_text = blk["text"]
             elif ev.get("type") == "result":
+                from app.observability import normalize_usage
+                usage = normalize_usage(ev.get("usage"))
+                # Anthropic input_tokens 不含缓存读取/写入，统一成包含缓存的输入总量。
+                if usage['input_tokens'] is not None:
+                    usage['input_tokens'] += (usage['cached_tokens'] or 0) + (usage['cache_creation_tokens'] or 0)
+                result.extra['usage'] = usage
+                result.extra['usage_source'] = 'reported' if ev.get('usage') else 'unknown'
+                terminal_usage = bool(ev.get('usage'))
                 result.cost_usd = ev.get("total_cost_usd")
                 result.num_turns = ev.get("num_turns")
                 if ev.get("result"):
                     last_text = str(ev["result"])
                 if ev.get("is_error"):
                     result.error = str(ev.get("result") or ev.get("subtype") or "agent error")
+        if not terminal_usage and messages:
+            from app.observability import normalize_usage, sum_usage
+            usages = []
+            for value in messages.values():
+                usage = normalize_usage(value)
+                if usage['input_tokens'] is not None:
+                    usage['input_tokens'] += (usage['cached_tokens'] or 0) + (usage['cache_creation_tokens'] or 0)
+                usages.append(usage)
+            result.extra['usage'] = sum_usage(usages)
+            result.extra['usage_source'] = 'partial'
         result.final_text = last_text
 
 
 class CodexRunner(BaseRunner):
     key = "codex"
 
-    def build_cmd(self, prompt: str, repo_dir: str) -> list[str]:
+    def build_cmd(self, prompt: str, repo_dir: str,
+                  resume_session_id: str | None = None) -> list[str]:
         s = get_settings()
         cmd = [self.binary or "codex", "exec", "--json", "--dangerously-bypass-approvals-and-sandbox",
                "--skip-git-repo-check", "-C", repo_dir]
@@ -383,6 +418,7 @@ class CodexRunner(BaseRunner):
 
     def extract_final(self, events: list[dict], result: RunResult) -> None:
         last_text = ""
+        usages = []
         for ev in events:
             # codex exec --json 事件：{"type":"item.completed","item":{"type":"agent_message","text":...}}
             item = ev.get("item") if isinstance(ev, dict) else None
@@ -390,9 +426,12 @@ class CodexRunner(BaseRunner):
                 last_text = str(item["text"])
             elif ev.get("type") == "turn.completed":
                 usage = ev.get("usage") or {}
-                result.extra["usage"] = usage
+                usages.append(usage)
             elif ev.get("type") in ("error", "turn.failed"):
                 result.error = str(ev.get("message") or ev.get("error") or "codex error")
+        from app.observability import sum_usage
+        result.extra['usage'] = sum_usage(usages)
+        result.extra['usage_source'] = ('partial' if result.error or result.timed_out or result.canceled else 'reported') if usages else 'unknown'
         result.final_text = last_text
 
 
@@ -407,12 +446,14 @@ class MockRunner(BaseRunner):
         self.pages = pages or 5
         self.title = title or "ppt-master Mock 演示"
 
-    def build_cmd(self, prompt: str, repo_dir: str) -> list[str]:  # pragma: no cover
+    def build_cmd(self, prompt: str, repo_dir: str,
+                  resume_session_id: str | None = None) -> list[str]:  # pragma: no cover
         return [sys.executable, "-c", "print('mock')"]
 
     def run(self, prompt: str, repo_dir: str, env: dict, log_path: str,
             on_line: LineHook | None = None, should_cancel: Callable[[], bool] | None = None,
-            timeout_s: int = 2400, on_pid: Callable[[int], None] | None = None) -> RunResult:
+            timeout_s: int = 2400, on_pid: Callable[[int], None] | None = None,
+            resume_session_id: str | None = None) -> RunResult:
         from pptx import Presentation
         from pptx.util import Inches, Pt
 

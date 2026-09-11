@@ -18,6 +18,7 @@ from openai import APIStatusError, OpenAI
 from app.core.config import get_settings, validate_selectable_model
 from app.core.errors import PPTError
 from app.core.logging import ctx_stage, get_logger
+from app.observability import capture, normalize_usage
 
 logger = get_logger(__name__)
 
@@ -104,13 +105,13 @@ class LLMGateway:
             s = self.settings
             if provider == "qwen":
                 self._clients[provider] = OpenAI(api_key=s.qwen_api_key, base_url=s.qwen_base_url,
-                                                 timeout=s.llm_timeout_seconds)
+                                                 timeout=s.llm_timeout_seconds, max_retries=0)
             elif provider == "deepseek":
                 self._clients[provider] = OpenAI(api_key=s.deepseek_api_key, base_url=s.deepseek_base_url,
-                                                 timeout=s.llm_timeout_seconds)
+                                                 timeout=s.llm_timeout_seconds, max_retries=0)
             elif provider == "kimi":
                 self._clients[provider] = OpenAI(api_key=s.kimi_api_key, base_url=s.kimi_base_url,
-                                                 timeout=s.llm_timeout_seconds)
+                                                 timeout=s.llm_timeout_seconds, max_retries=0)
             else:
                 raise PPTError("E3001", f"未知 Provider: {provider}")
         return self._clients[provider]
@@ -152,13 +153,17 @@ class LLMGateway:
             return _mock_response(task_type, user)
 
         chain = self._route(task_type, mode, model_override)
+        route = self.routes.get(task_type) or self.routes['page_content']
+        primary = chain[0] if model_override else route.get(mode) or route.get('standard') or next(iter(route.values()))
         last_error: Exception | None = None
+        request_counter = [0]
         for i, (provider, model) in enumerate(chain):
-            is_fallback = i == len(chain) - 1 and len(chain) > 1 and chain[i] != chain[0]
+            is_fallback = (provider, model) != primary
             started = time.monotonic()
             error_type = None
             try:
                 with self._semaphores[provider]:  # Provider 级并发限流（全局共享）
+                    queue_ms = int((time.monotonic() - started) * 1000)
                     kwargs: dict = dict(
                         model=model,
                         messages=[{"role": "system", "content": system},
@@ -173,7 +178,9 @@ class LLMGateway:
                     # Qwen3 系混合思考模型：结构化任务显式关闭思考，显著降低时延
                     if provider == "qwen" and "vl" not in model:
                         kwargs["extra_body"] = {"enable_thinking": False}
-                    resp = self._do_call(provider, kwargs)
+                    resp = self._do_call(provider, kwargs, job_id=job_id, task_type=task_type,
+                                         mode=mode, fallback=is_fallback, queue_ms=queue_ms,
+                                         counter=request_counter)
                 content = resp.choices[0].message.content or ""
                 usage = getattr(resp, "usage", None)
                 self._breakers[provider].record(True)
@@ -200,15 +207,32 @@ class LLMGateway:
                            i + 1, task_type, provider, model, last_error)
         raise PPTError("E3001", f"全部通道失败: {last_error}")
 
-    def _do_call(self, provider: str, kwargs: dict):
+    def complete(self, provider: str, *, job_id=None, task_type="vision_qa", mode="", **kwargs):
+        """视觉等多模态路径共用请求计量和并发边界。"""
+        started = time.monotonic()
+        with self._semaphores[provider]:
+            return self._do_call(provider, kwargs, job_id=job_id, task_type=task_type, mode=mode,
+                                 queue_ms=int((time.monotonic() - started) * 1000))
+
+    def _do_call(self, provider: str, kwargs: dict, *, counter=None, **context):
         """执行调用；个别模型不认 enable_thinking 参数时自动去掉重试一次。"""
+        counter = counter if counter is not None else [0]
+        def request(params):
+            counter[0] += 1
+            with capture(provider=provider, model=params.get('model', ''), attempt=counter[0],
+                         input_data=params.get('messages'), **context) as event:
+                response = self._client(provider).chat.completions.create(**params)
+                event.update(normalize_usage(getattr(response, 'usage', None)))
+                event['output_data'] = response.choices[0].message.content if response.choices else None
+                return response
         try:
-            return self._client(provider).chat.completions.create(**kwargs)
+            return request(kwargs)
         except APIStatusError as e:
             if e.status_code == 400 and "extra_body" in kwargs and "thinking" in str(e).lower():
                 logger.info("模型不支持 enable_thinking 参数，去掉后重试")
                 kwargs = {k: v for k, v in kwargs.items() if k != "extra_body"}
-                return self._client(provider).chat.completions.create(**kwargs)
+                context['queue_ms'] = 0
+                return request(kwargs)
             raise
 
     def _log_call(self, job_id, task_type, provider, model, usage, duration_ms, status, error_type):

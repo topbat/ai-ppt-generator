@@ -1,0 +1,267 @@
+{
+  "checked_at": "2026-09-10T08:24:43.499887+00:00",
+  "checks": {
+    "healthz": {
+      "status": "ok"
+    },
+    "readyz": {
+      "status": "ok",
+      "checks": {
+        "database": "ok",
+        "redis": "ok",
+        "storage": "ok",
+        "convert": "ok"
+      }
+    },
+    "auth_and_validation": "passed"
+  },
+  "engines": {
+    "pipeline": {
+      "summary": {
+        "source": "local_observations",
+        "engine": "pipeline",
+        "summary": {
+          "count": 1,
+          "retries": 0,
+          "fallbacks": 0,
+          "input_tokens": 38,
+          "output_tokens": 4,
+          "cost_usd": null,
+          "avg_duration_ms": 3618.0,
+          "unknown_usage_count": 0,
+          "unknown_cost_count": 1,
+          "estimated_cost_count": 0,
+          "partial_usage_count": 0,
+          "success_rate": 100.0,
+          "p50_ms": 3618,
+          "p95_ms": 3618
+        },
+        "by_model": [
+          {
+            "model": "qwen3.7-plus",
+            "count": 1,
+            "retries": 0,
+            "fallbacks": 0,
+            "input_tokens": 38,
+            "output_tokens": 4,
+            "cost_usd": null,
+            "avg_duration_ms": 3618.0,
+            "unknown_usage_count": 0,
+            "unknown_cost_count": 1,
+            "estimated_cost_count": 0,
+            "partial_usage_count": 0,
+            "success_rate": 100.0
+          }
+        ],
+        "by_stage": [
+          {
+            "stage": "-",
+            "count": 1,
+            "retries": 0,
+            "fallbacks": 0,
+            "input_tokens": 38,
+            "output_tokens": 4,
+            "cost_usd": null,
+            "avg_duration_ms": 3618.0,
+            "unknown_usage_count": 0,
+            "unknown_cost_count": 1,
+            "estimated_cost_count": 0,
+            "partial_usage_count": 0,
+            "success_rate": 100.0
+          }
+        ],
+        "daily": [
+          {
+            "date": "2026-09-10",
+            "count": 1,
+            "retries": 0,
+            "fallbacks": 0,
+            "input_tokens": 38,
+            "output_tokens": 4,
+            "cost_usd": null,
+            "avg_duration_ms": 3618.0,
+            "unknown_usage_count": 0,
+            "unknown_cost_count": 1,
+            "estimated_cost_count": 0,
+            "partial_usage_count": 0,
+            "success_rate": 100.0
+          }
+        ],
+        "langfuse_enabled": true
+      },
+      "latest_observation": {
+        "id": "fa76abac67584b59834591abfc27f780",
+        "trace_id": "0178465603cf4a16a0e58898f3138dbd",
+        "engine": "pipeline",
+        "kind": "request",
+        "job_id": null,
+        "biz_id": null,
+        "stage": "-",
+        "task_type": "doc_summary",
+        "provider": "qwen",
+        "model": "qwen3.7-plus",
+        "mode": "fast",
+        "attempt": 1,
+        "fallback": false,
+        "input_tokens": 38,
+        "output_tokens": 4,
+        "cached_tokens": 0,
+        "cache_creation_tokens": null,
+        "cost_usd": null,
+        "cost_source": "unknown",
+        "usage_source": "reported",
+        "duration_ms": 3618,
+        "queue_ms": 0,
+        "status": "success",
+        "error_type": null,
+        "created_at": "2026-09-10T16:18:18.425024+08:00",
+        "trace_url": "http://localhost:3000/project/ppt-local-project/traces/0178465603cf4a16a0e58898f3138dbd"
+      },
+      "langfuse_observation_id": "600fa8688a6a0b5b",
+      "remote_usage": {
+        "input": 38,
+        "output": 4,
+        "input_cached": 0,
+        "total": 42
+      },
+      "remote": {
+        "status": "ok",
+        "data": [
+          {
+            "providedModelName": "qwen3.7-plus",
+            "count_count": 1,
+            "sum_totalTokens": 42,
+            "sum_totalCost": 0,
+            "p95_latency": 3619
+          }
+        ],
+        "cached": false
+      },
+      "privacy_and_model_filter": "passed"
+    },
+    "pptmaster": {
+      "summary": {
+        "source": "local_observations",
+        "engine": "pptmaster",
+        "summary": {
+          "count": 1,
+          "retries": 0,
+          "fallbacks": 0,
+          "input_tokens": 23539,
+          "output_tokens": 42,
+          "cost_usd": 0.14642125,
+          "avg_duration_ms": 8381.0,
+          "unknown_usage_count": 0,
+          "unknown_cost_count": 0,
+          "estimated_cost_count": 0,
+          "partial_usage_count": 0,
+          "success_rate": 100.0,
+          "p50_ms": 8381,
+          "p95_ms": 8381
+        },
+        "by_model": [
+          {
+            "model": "qwen3.7-plus",
+            "count": 1,
+            "retries": 0,
+            "fallbacks": 0,
+            "input_tokens": 23539,
+            "output_tokens": 42,
+            "cost_usd": 0.14642125,
+            "avg_duration_ms": 8381.0,
+            "unknown_usage_count": 0,
+            "unknown_cost_count": 0,
+            "estimated_cost_count": 0,
+            "partial_usage_count": 0,
+            "success_rate": 100.0
+          }
+        ],
+        "by_stage": [
+          {
+            "stage": "agent_run",
+            "count": 1,
+            "retries": 0,
+            "fallbacks": 0,
+            "input_tokens": 23539,
+            "output_tokens": 42,
+            "cost_usd": 0.14642125,
+            "avg_duration_ms": 8381.0,
+            "unknown_usage_count": 0,
+            "unknown_cost_count": 0,
+            "estimated_cost_count": 0,
+            "partial_usage_count": 0,
+            "success_rate": 100.0
+          }
+        ],
+        "daily": [
+          {
+            "date": "2026-09-10",
+            "count": 1,
+            "retries": 0,
+            "fallbacks": 0,
+            "input_tokens": 23539,
+            "output_tokens": 42,
+            "cost_usd": 0.14642125,
+            "avg_duration_ms": 8381.0,
+            "unknown_usage_count": 0,
+            "unknown_cost_count": 0,
+            "estimated_cost_count": 0,
+            "partial_usage_count": 0,
+            "success_rate": 100.0
+          }
+        ],
+        "langfuse_enabled": true
+      },
+      "latest_observation": {
+        "id": "bfdcf7efab644969aacfd19b2aed5486",
+        "trace_id": "79ec698375de11e028c8ee248b83092f",
+        "engine": "pptmaster",
+        "kind": "agent_run",
+        "job_id": null,
+        "biz_id": null,
+        "stage": "agent_run",
+        "task_type": "agent_run",
+        "provider": "claude",
+        "model": "qwen3.7-plus",
+        "mode": "",
+        "attempt": 1,
+        "fallback": false,
+        "input_tokens": 23539,
+        "output_tokens": 42,
+        "cached_tokens": 0,
+        "cache_creation_tokens": 22141,
+        "cost_usd": 0.14642125,
+        "cost_source": "reported",
+        "usage_source": "reported",
+        "duration_ms": 8381,
+        "queue_ms": 0,
+        "status": "success",
+        "error_type": null,
+        "created_at": "2026-09-10T16:18:25.719146+08:00",
+        "trace_url": "http://localhost:3000/project/ppt-local-project/traces/79ec698375de11e028c8ee248b83092f"
+      },
+      "langfuse_observation_id": "38f53687e89eab18",
+      "remote_usage": {
+        "input": 1398,
+        "output": 42,
+        "input_cached": 0,
+        "input_cache_creation": 22141,
+        "total": 23581
+      },
+      "remote": {
+        "status": "ok",
+        "data": [
+          {
+            "providedModelName": "qwen3.7-plus",
+            "count_count": 1,
+            "sum_totalTokens": 23581,
+            "sum_totalCost": 0.14642125,
+            "p95_latency": 8381
+          }
+        ],
+        "cached": false
+      },
+      "privacy_and_model_filter": "passed"
+    }
+  }
+}

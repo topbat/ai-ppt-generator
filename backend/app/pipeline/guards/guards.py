@@ -24,7 +24,12 @@ def build_page_plan(outline: list[dict], ai_slides: list[dict], target_pages: in
     返回 (plan, warnings)。
     """
     warnings: list[str] = []
-    fixed_base = 3 + (1 if has_ending else 0)  # 封面+目录+总结(+尾页)
+    # API 允许的最小 5 页无法同时容纳封面、目录、章节页、正文、
+    # 总结和模板尾页。尾页是用户模板的明确设计，因此在最小页数下省略总结页。
+    include_summary = not (has_ending and target_pages == 5)
+    if not include_summary:
+        warnings.append("页数预算不足，已省略总结页以保留模板尾页")
+    fixed_base = 2 + int(include_summary) + int(has_ending)  # 封面+目录+(+总结)(+尾页)
     n_chapters = len(outline)
     content_budget = target_pages - fixed_base - n_chapters
     if content_budget < n_chapters:  # 每章至少 1 页正文
@@ -108,10 +113,11 @@ def build_page_plan(outline: list[dict], ai_slides: list[dict], target_pages: in
             page += 1
         if len(candidates) > count:
             warnings.append(f"章节「{o['chapter']}」AI 规划页超出预算，截断 {len(candidates) - count} 页")
-    plan.append({"page": page, "type": "summary", "title": "总结", "chapter_idx": 0,
-                 "summary_items": [f"{o['chapter']}：{o.get('summary', '')}" for o in outline]})
-    if has_ending:
+    if include_summary:
+        plan.append({"page": page, "type": "summary", "title": "总结", "chapter_idx": 0,
+                     "summary_items": [f"{o['chapter']}：{o.get('summary', '')}" for o in outline]})
         page += 1
+    if has_ending:
         plan.append({"page": page, "type": "ending", "title": "感谢聆听", "chapter_idx": 0})
 
     # 终检后处理：相邻页标题若仍相同（如正文页标题恰与下一章章节名一致），

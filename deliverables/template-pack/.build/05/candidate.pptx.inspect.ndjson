@@ -1,0 +1,100 @@
+{"kind":"deck","id":"pr/x5cysc","name":"Deck"}
+{"kind":"layout","layoutId":"a9de141e-d106-4896-9520-49e24bfddee9","name":"Master","type":"master"}
+{"kind":"layout","layoutId":"bc9e2ccc-c50e-4a5d-8646-074469cc8620","name":"Title Slide","type":"title"}
+{"kind":"slide","id":"sl/zeby4l","slide":1,"title":"组织名称","textShapes":6}
+{"kind":"textbox","id":"sh/uho7mhgf","slide":1,"name":"组织名称","text":"组织名称","textPreview":"组织名称","textChars":4,"textLines":1,"bbox":[72,42,480,40]}
+{"kind":"textbox","id":"sh/hkf6hcz6","slide":1,"name":"英文分类","text":"PERIOD REVIEW","textPreview":"PERIOD REVIEW","textChars":13,"textLines":1,"bbox":[72,182,1040,44]}
+{"kind":"textbox","id":"sh/gj6po7yl","slide":1,"name":"主标题","text":"阶段工作总结","textPreview":"阶段工作总结","textChars":6,"textLines":1,"bbox":[72,270,1090,118]}
+{"kind":"textbox","id":"sh/3mhojmhw","slide":1,"name":"副标题","text":"总结周期 / 所属部门 / 汇报人","textPreview":"总结周期 / 所属部门 / 汇报人","textChars":17,"textLines":1,"bbox":[76,425,1000,52]}
+{"kind":"textbox","id":"sh/il87qhgb","slide":1,"name":"日期","text":"汇报日期：YYYY.MM.DD","textPreview":"汇报日期：YYYY.MM.DD","textChars":15,"textLines":1,"bbox":[76,614,800,32]}
+{"kind":"textbox","id":"sh/5oz6lwz2","slide":1,"name":"模板编号","text":"TEMPLATE 05","textPreview":"TEMPLATE 05","textChars":11,"textLines":1,"bbox":[1034,614,190,32]}
+{"kind":"notes","id":"nt/zeby4l","slide":1,"text":""}
+{"kind":"slide","id":"sl/hj3mdg","slide":2,"title":"组织名称","textShapes":13}
+{"kind":"textbox","id":"sh/zihg7qxw","slide":2,"name":"组织名称","text":"组织名称","textPreview":"组织名称","textChars":4,"textLines":1,"bbox":[64,25,300,25]}
+{"kind":"textbox","id":"sh/0jqhgbe1","slide":2,"name":"页码","text":"02 / 08","textPreview":"02 / 08","textChars":7,"textLines":1,"bbox":[1110,25,105,25]}
+{"kind":"textbox","id":"sh/lkzy9gfm","slide":2,"name":"页面标题","text":"内容目录","textPreview":"内容目录","textChars":4,"textLines":1,"bbox":[64,86,1148,72]}
+{"kind":"shape","id":"sh/qdofa1gz","slide":2,"name":"分隔线","bbox":[64,177,1152,1]}
+{"kind":"textbox","id":"sh/bexg36xk","slide":2,"name":"模板说明","text":"模板示例 · 请替换内容","textPreview":"模板示例 · 请替换内容","textChars":12,"textLines":1,"bbox":[64,673,670,24]}
+{"kind":"textbox","id":"sh/cf6xcby5","slide":2,"name":"页面类型","text":"目录页","textPreview":"目录页","textChars":3,"textLines":1,"bbox":[988,673,230,24]}
+{"kind":"textbox","id":"sh/dgzy5gfq","slide":2,"name":"章节序号_0","text":"01","textPreview":"01","textChars":2,"textLines":1,"bbox":[88,216,100,62]}
+{"kind":"textbox","id":"sh/a9szm5wj","slide":2,"name":"章节标题_0","text":"工作概况","textPreview":"工作概况","textChars":4,"textLines":1,"bbox":[220,218,905,60]}
+{"kind":"shape","id":"sh/va1gfaxo","slide":2,"name":"分隔线","bbox":[220,296,920,1]}
+{"kind":"textbox","id":"sh/vapwnqx4","slide":2,"name":"章节序号_1","text":"02","textPreview":"02","textChars":2,"textLines":1,"bbox":[88,317,100,62]}
+{"kind":"textbox","id":"sh/u9wve5gj","slide":2,"name":"章节标题_1","text":"成果展示","textPreview":"成果展示","textChars":4,"textLines":1,"bbox":[220,319,905,60]}
+{"kind":"shape","id":"sh/hc7ep0fa","slide":2,"name":"分隔线","bbox":[220,397,920,1]}
+{"kind":"textbox","id":"sh/gbydgvyp","slide":2,"name":"章节序号_2","text":"03","textPreview":"03","textChars":2,"textLines":1,"bbox":[88,418,100,62]}
+{"kind":"textbox","id":"sh/3epwraxg","slide":2,"name":"章节标题_2","text":"问题复盘","textPreview":"问题复盘","textChars":4,"textLines":1,"bbox":[220,420,905,60]}
+{"kind":"shape","id":"sh/idgfi5gv","slide":2,"name":"分隔线","bbox":[220,498,920,1]}
+{"kind":"textbox","id":"sh/5g7etkf6","slide":2,"name":"章节序号_3","text":"04","textPreview":"04","textChars":2,"textLines":1,"bbox":[88,519,100,62]}
+{"kind":"textbox","id":"sh/4fyxkfyl","slide":2,"name":"章节标题_3","text":"下期计划","textPreview":"下期计划","textChars":4,"textLines":1,"bbox":[220,521,905,60]}
+{"kind":"notes","id":"nt/hj3mdg","slide":2,"text":""}
+{"kind":"slide","id":"sl/lnpddy","slide":3,"title":"01","textShapes":4}
+{"kind":"textbox","id":"sh/ds7y9kzi","slide":3,"name":"章节编号","text":"01","textPreview":"01","textChars":2,"textLines":1,"bbox":[72,68,480,180]}
+{"kind":"textbox","id":"sh/qpgzy50r","slide":3,"name":"章节标题","text":"重点成果与经验复盘","textPreview":"重点成果与经验复盘","textChars":9,"textLines":1,"bbox":[76,315,1128,100]}
+{"kind":"textbox","id":"sh/bqpg7ahc","slide":3,"name":"章节摘要","text":"填写本章节的核心内容与讨论范围","textPreview":"填写本章节的核心内容与讨论范围","textChars":15,"textLines":1,"bbox":[80,465,1050,58]}
+{"kind":"textbox","id":"sh/4nyhwvi1","slide":3,"name":"模板说明","text":"组织名称 / 章节过渡页","textPreview":"组织名称 / 章节过渡页","textChars":12,"textLines":1,"bbox":[80,655,700,28]}
+{"kind":"notes","id":"nt/lnpddy","slide":3,"text":""}
+{"kind":"slide","id":"sl/5wip8e","slide":4,"title":"组织名称","textShapes":19}
+{"kind":"textbox","id":"sh/g365k72x","slide":4,"name":"组织名称","text":"组织名称","textPreview":"组织名称","textChars":4,"textLines":1,"bbox":[64,25,300,25]}
+{"kind":"textbox","id":"sh/f2dor2lc","slide":4,"name":"页码","text":"04 / 08","textPreview":"04 / 08","textChars":7,"textLines":1,"bbox":[1110,25,105,25]}
+{"kind":"textbox","id":"sh/e14nixkr","slide":4,"name":"页面标题","text":"工作成果与问题复盘","textPreview":"工作成果与问题复盘","textChars":9,"textLines":1,"bbox":[64,86,1148,72]}
+{"kind":"shape","id":"sh/t0v6ps3m","slide":4,"name":"分隔线","bbox":[64,177,1152,1]}
+{"kind":"textbox","id":"sh/szm5g721","slide":4,"name":"模板说明","text":"模板示例 · 请替换内容","textPreview":"模板示例 · 请替换内容","textChars":12,"textLines":1,"bbox":[64,673,670,24]}
+{"kind":"textbox","id":"sh/redon2lg","slide":4,"name":"页面类型","text":"双栏内容页","textPreview":"双栏内容页","textChars":5,"textLines":1,"bbox":[988,673,230,24]}
+{"kind":"textbox","id":"sh/6d4nexkv","slide":4,"name":"左栏标题","text":"主要成果","textPreview":"主要成果","textChars":4,"textLines":1,"bbox":[76,216,510,51]}
+{"kind":"textbox","id":"sh/dwz61w3q","slide":4,"name":"右栏标题","text":"经验与改进","textPreview":"经验与改进","textChars":5,"textLines":1,"bbox":[688,216,510,51]}
+{"kind":"textbox","id":"sh/cvqpsr25","slide":4,"name":"要点编号_0","text":"01","textPreview":"01","textChars":2,"textLines":1,"bbox":[76,300,48,32]}
+{"kind":"textbox","id":"sh/6l8fu1cb","slide":4,"name":"内容要点_0","text":"本阶段完成的重点工作","textPreview":"本阶段完成的重点工作","textChars":10,"textLines":1,"bbox":[136,300,450,67]}
+{"kind":"textbox","id":"sh/7mhg36dw","slide":4,"name":"要点编号_1","text":"02","textPreview":"02","textChars":2,"textLines":1,"bbox":[76,402,48,32]}
+{"kind":"textbox","id":"sh/8nqxwbu1","slide":4,"name":"内容要点_1","text":"已交付成果及对应价值","textPreview":"已交付成果及对应价值","textChars":10,"textLines":1,"bbox":[136,402,450,67]}
+{"kind":"textbox","id":"sh/tojy5wvm","slide":4,"name":"要点编号_2","text":"03","textPreview":"03","textChars":2,"textLines":1,"bbox":[76,504,48,32]}
+{"kind":"textbox","id":"sh/yx8fqhcz","slide":4,"name":"内容要点_2","text":"跨团队协作与支持情况","textPreview":"跨团队协作与支持情况","textChars":10,"textLines":1,"bbox":[136,504,450,67]}
+{"kind":"textbox","id":"sh/jyhgzmdk","slide":4,"name":"要点编号_0","text":"01","textPreview":"01","textChars":2,"textLines":1,"bbox":[688,300,48,32]}
+{"kind":"textbox","id":"sh/kzqxsru5","slide":4,"name":"内容要点_0","text":"执行过程中的主要问题","textPreview":"执行过程中的主要问题","textChars":10,"textLines":1,"bbox":[748,300,450,67]}
+{"kind":"textbox","id":"sh/lkzy1wvq","slide":4,"name":"要点编号_1","text":"02","textPreview":"02","textChars":2,"textLines":1,"bbox":[688,402,48,32]}
+{"kind":"textbox","id":"sh/itsz2lcj","slide":4,"name":"内容要点_1","text":"可复用的经验和方法","textPreview":"可复用的经验和方法","textChars":9,"textLines":1,"bbox":[748,402,450,67]}
+{"kind":"textbox","id":"sh/3u1gbqdo","slide":4,"name":"要点编号_2","text":"03","textPreview":"03","textChars":2,"textLines":1,"bbox":[688,504,48,32]}
+{"kind":"textbox","id":"sh/fmt47ep4","slide":4,"name":"内容要点_2","text":"下一阶段需要调整的做法","textPreview":"下一阶段需要调整的做法","textChars":11,"textLines":1,"bbox":[748,504,450,67]}
+{"kind":"notes","id":"nt/5wip8e","slide":4,"text":""}
+{"kind":"slide","id":"sl/i9pto6","slide":5,"title":"组织名称","textShapes":9}
+{"kind":"textbox","id":"sh/zidsjmxc","slide":5,"name":"组织名称","text":"组织名称","textPreview":"组织名称","textChars":4,"textLines":1,"bbox":[64,25,300,25]}
+{"kind":"textbox","id":"sh/03mtsrex","slide":5,"name":"页码","text":"05 / 08","textPreview":"05 / 08","textChars":7,"textLines":1,"bbox":[1110,25,105,25]}
+{"kind":"textbox","id":"sh/l4valwfi","slide":5,"name":"页面标题","text":"工作完成情况","textPreview":"工作完成情况","textChars":6,"textLines":1,"bbox":[64,86,1148,72]}
+{"kind":"shape","id":"sh/qdkrmhwv","slide":5,"name":"分隔线","bbox":[64,177,1152,1]}
+{"kind":"textbox","id":"sh/betsfmxg","slide":5,"name":"模板说明","text":"模板示例 · 请替换内容","textPreview":"模板示例 · 请替换内容","textChars":12,"textLines":1,"bbox":[64,673,670,24]}
+{"kind":"textbox","id":"sh/cf29o7el","slide":5,"name":"页面类型","text":"原生图表页","textPreview":"原生图表页","textChars":5,"textLines":1,"bbox":[988,673,230,24]}
+{"kind":"textbox","id":"sh/dgbahcf6","slide":5,"name":"数据声明","text":"示例数据，非真实业务结果；单位：示例值","textPreview":"示例数据，非真实业务结果；单位：示例值","textChars":19,"textLines":1,"bbox":[74,203,1020,33]}
+{"kind":"textbox","id":"sh/vaxsr6xk","slide":5,"name":"结论标题","text":"分析结论","textPreview":"分析结论","textChars":4,"textLines":1,"bbox":[928,270,286,44]}
+{"kind":"textbox","id":"sh/f21kzu1s","slide":5,"name":"结论正文","text":"填写变化趋势\n解释主要原因\n说明业务影响","textPreview":"填写变化趋势 | 解释主要原因 | 说明业务影响","textChars":20,"textLines":3,"bbox":[928,340,278,180]}
+{"kind":"textbox","id":"sh/e18j6pk7","slide":5,"name":"来源标注","text":"数据来源：待填写","textPreview":"数据来源：待填写","textChars":8,"textLines":1,"bbox":[928,571,278,44]}
+{"kind":"chart","id":"ch/290jut4z","slide":5,"name":"","chartType":"bar","bbox":[64,260,804,350]}
+{"kind":"notes","id":"nt/i9pto6","slide":5,"text":"本页数值仅为展示原生图表布局的示例，不代表真实业务结果。"}
+{"kind":"slide","id":"sl/dckbkn","slide":6,"title":"组织名称","textShapes":7}
+{"kind":"textbox","id":"sh/1cf6hcn2","slide":6,"name":"组织名称","text":"组织名称","textPreview":"组织名称","textChars":4,"textLines":1,"bbox":[64,25,300,25]}
+{"kind":"textbox","id":"sh/e9o76h4b","slide":6,"name":"页码","text":"06 / 08","textPreview":"06 / 08","textChars":7,"textLines":1,"bbox":[1110,25,105,25]}
+{"kind":"textbox","id":"sh/zaxof25w","slide":6,"name":"页面标题","text":"下阶段工作安排","textPreview":"下阶段工作安排","textChars":7,"textLines":1,"bbox":[64,86,1148,72]}
+{"kind":"shape","id":"sh/ozqpcrmt","slide":6,"name":"分隔线","bbox":[64,177,1152,1]}
+{"kind":"textbox","id":"sh/90zqlwny","slide":6,"name":"模板说明","text":"模板示例 · 请替换内容","textPreview":"模板示例 · 请替换内容","textChars":12,"textLines":1,"bbox":[64,673,670,24]}
+{"kind":"textbox","id":"sh/mxo7ah4n","slide":6,"name":"页面类型","text":"原生表格页","textPreview":"原生表格页","textChars":5,"textLines":1,"bbox":[988,673,230,24]}
+{"kind":"textbox","id":"sh/nyxojm58","slide":6,"name":"表格摘要","text":"填写本页计划、清单或对照关系的说明","textPreview":"填写本页计划、清单或对照关系的说明","textChars":17,"textLines":1,"bbox":[72,205,1136,44]}
+{"kind":"textbox","id":"sh/p4v69snu","slide":6,"name":"补充说明","text":"补充说明：填写相关约束、依赖条件或更新日期","textPreview":"补充说明：填写相关约束、依赖条件或更新日期","textChars":21,"textLines":1,"bbox":[74,596,1110,42]}
+{"kind":"table","id":"tb/dcbel8za","slide":6,"name":"","rows":4,"cols":4,"preview":"工作任务 | 预期成果 | 责任人 | 计划时间","bbox":[72,292,1136,272]}
+{"kind":"notes","id":"nt/dckbkn","slide":6,"text":""}
+{"kind":"slide","id":"sl/9oewtw","slide":7,"title":"组织名称","textShapes":9}
+{"kind":"textbox","id":"sh/p0ni907m","slide":7,"name":"组织名称","text":"组织名称","textPreview":"组织名称","textChars":4,"textLines":1,"bbox":[64,25,300,25]}
+{"kind":"textbox","id":"sh/2xczyl8v","slide":7,"name":"页码","text":"07 / 08","textPreview":"07 / 08","textChars":7,"textLines":1,"bbox":[1110,25,105,25]}
+{"kind":"textbox","id":"sh/3yl07qpg","slide":7,"name":"页面标题","text":"成果展示与说明","textPreview":"成果展示与说明","textChars":7,"textLines":1,"bbox":[64,86,1148,72]}
+{"kind":"shape","id":"sh/c3eh4v6x","slide":7,"name":"分隔线","bbox":[64,177,1152,1]}
+{"kind":"textbox","id":"sh/donid07i","slide":7,"name":"模板说明","text":"模板示例 · 请替换内容","textPreview":"模板示例 · 请替换内容","textChars":12,"textLines":1,"bbox":[64,673,670,24]}
+{"kind":"textbox","id":"sh/q1wz2l8r","slide":7,"name":"页面类型","text":"图文内容页","textPreview":"图文内容页","textChars":5,"textLines":1,"bbox":[988,673,230,24]}
+{"kind":"textbox","id":"sh/r250bqpc","slide":7,"name":"可替换图片_横向","text":"图片占位\n成果照片 / 交付截图","textPreview":"图片占位 | 成果照片 / 交付截图","textChars":16,"textLines":2,"bbox":[72,233,688,387]}
+{"kind":"textbox","id":"sh/s7uhsbqt","slide":7,"name":"图文小标题","text":"案例 / 场景名称","textPreview":"案例 / 场景名称","textChars":9,"textLines":1,"bbox":[819,232,387,65]}
+{"kind":"textbox","id":"sh/t83y1g7e","slide":7,"name":"场景描述","text":"填写场景背景\n说明对象与关键过程","textPreview":"填写场景背景 | 说明对象与关键过程","textChars":16,"textLines":2,"bbox":[820,324,384,111]}
+{"kind":"textbox","id":"sh/94ze5w7u","slide":7,"name":"场景价值","text":"填写成果价值\n说明需要强调的细节","textPreview":"填写成果价值 | 说明需要强调的细节","textChars":16,"textLines":2,"bbox":[820,471,384,111]}
+{"kind":"notes","id":"nt/9oewtw","slide":7,"text":""}
+{"kind":"slide","id":"sl/fsfmw7","slide":8,"title":"下阶段工作重点","textShapes":4}
+{"kind":"textbox","id":"sh/a1sfid4v","slide":8,"name":"结束标题","text":"下阶段工作重点","textPreview":"下阶段工作重点","textChars":7,"textLines":1,"bbox":[74,165,1134,112]}
+{"kind":"textbox","id":"sh/x43yd8n6","slide":8,"name":"结束摘要","text":"目标确认 · 行动安排 · 协作需求","textPreview":"目标确认 · 行动安排 · 协作需求","textChars":18,"textLines":1,"bbox":[80,322,1116,70]}
+{"kind":"textbox","id":"sh/w3uxk3m1","slide":8,"name":"下一步说明","text":"填写最重要的下一步安排","textPreview":"填写最重要的下一步安排","textChars":11,"textLines":1,"bbox":[80,438,1100,61]}
+{"kind":"textbox","id":"sh/ny1g7y54","slide":8,"name":"联系信息","text":"联系人 / 部门 / 联系方式","textPreview":"联系人 / 部门 / 联系方式","textChars":15,"textLines":1,"bbox":[80,622,1090,40]}
+{"kind":"notes","id":"nt/fsfmw7","slide":8,"text":""}

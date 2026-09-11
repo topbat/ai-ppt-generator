@@ -1,0 +1,171 @@
+# Merge into ppt-generator with --env-file deploy/langfuse/.env.
+# Shared Redis DB 4, MinIO bucket langfuse and PostgreSQL database langfuse.
+services:
+  worker:
+    command:
+    - celery
+    - -A
+    - app.worker
+    - worker
+    - -Q
+    - generate,convert
+    - -c
+    - '1'
+    - --max-tasks-per-child
+    - '50'
+    - --loglevel
+    - INFO
+  pptmaster-worker:
+    environment:
+      PPTMASTER_MAX_CONCURRENT_JOBS: '1'
+  langfuse-init:
+    image: ppt-generator-api:latest
+    entrypoint:
+    - python
+    - /bootstrap.py
+    volumes:
+    - ./langfuse/bootstrap.py:/bootstrap.py:ro
+    environment:
+      PGHOST: postgres
+      PGUSER: ppt
+      PGPASSWORD: ppt
+      PGDATABASE: ppt
+      LF_DATABASE_PASSWORD: ${POSTGRES_PASSWORD:?run langfuse/init.py}
+      LF_S3_ACCESS_KEY_ID: ${LF_S3_ACCESS_KEY_ID:-pptadmin}
+      LF_S3_SECRET_ACCESS_KEY: ${LF_S3_SECRET_ACCESS_KEY:-pptadmin123}
+    depends_on:
+      postgres:
+        condition: service_healthy
+      minio:
+        condition: service_healthy
+    restart: 'no'
+  langfuse-web:
+    image: docker.langfuse.com/langfuse/langfuse:4
+    restart: unless-stopped
+    depends_on: &id001
+      langfuse-init:
+        condition: service_completed_successfully
+      redis:
+        condition: service_healthy
+      clickhouse:
+        condition: service_healthy
+    ports:
+    - 127.0.0.1:3000:3000
+    environment:
+      HOSTNAME: 0.0.0.0
+      DATABASE_URL: postgresql://ppt_langfuse:${POSTGRES_PASSWORD:?run langfuse/init.py}@postgres:5432/langfuse
+      NEXTAUTH_URL: http://localhost:3000
+      SALT: ${SALT:?run init.py}
+      ENCRYPTION_KEY: ${ENCRYPTION_KEY:?run init.py}
+      TELEMETRY_ENABLED: 'false'
+      CLICKHOUSE_MIGRATION_URL: clickhouse://clickhouse:9000
+      CLICKHOUSE_URL: http://clickhouse:8123
+      CLICKHOUSE_USER: langfuse
+      CLICKHOUSE_PASSWORD: ${CLICKHOUSE_PASSWORD:?run init.py}
+      CLICKHOUSE_CLUSTER_ENABLED: 'false'
+      REDIS_TLS_ENABLED: 'false'
+      LANGFUSE_S3_EVENT_UPLOAD_BUCKET: langfuse
+      LANGFUSE_S3_EVENT_UPLOAD_REGION: auto
+      LANGFUSE_S3_EVENT_UPLOAD_ACCESS_KEY_ID: ${LF_S3_ACCESS_KEY_ID:-pptadmin}
+      LANGFUSE_S3_EVENT_UPLOAD_SECRET_ACCESS_KEY: ${LF_S3_SECRET_ACCESS_KEY:-pptadmin123}
+      LANGFUSE_S3_EVENT_UPLOAD_ENDPOINT: http://minio:9000
+      LANGFUSE_S3_EVENT_UPLOAD_FORCE_PATH_STYLE: 'true'
+      LANGFUSE_S3_EVENT_UPLOAD_PREFIX: events/
+      LANGFUSE_S3_MEDIA_UPLOAD_BUCKET: langfuse
+      LANGFUSE_S3_MEDIA_UPLOAD_REGION: auto
+      LANGFUSE_S3_MEDIA_UPLOAD_ACCESS_KEY_ID: ${LF_S3_ACCESS_KEY_ID:-pptadmin}
+      LANGFUSE_S3_MEDIA_UPLOAD_SECRET_ACCESS_KEY: ${LF_S3_SECRET_ACCESS_KEY:-pptadmin123}
+      LANGFUSE_S3_MEDIA_UPLOAD_ENDPOINT: http://localhost:9000
+      LANGFUSE_S3_MEDIA_UPLOAD_FORCE_PATH_STYLE: 'true'
+      LANGFUSE_S3_MEDIA_UPLOAD_PREFIX: media/
+      NODE_OPTIONS: --max-old-space-size=768
+      REDIS_CONNECTION_STRING: redis://redis:6379/4
+      NEXTAUTH_SECRET: ${NEXTAUTH_SECRET:?run init.py}
+      LANGFUSE_S3_MEDIA_UPLOAD_INTERNAL_ENDPOINT: http://minio:9000
+      LANGFUSE_INIT_ORG_ID: ppt-local-org
+      LANGFUSE_INIT_ORG_NAME: PPT Local
+      LANGFUSE_INIT_PROJECT_ID: ppt-local-project
+      LANGFUSE_INIT_PROJECT_NAME: PPT Metrics
+      LANGFUSE_INIT_PROJECT_PUBLIC_KEY: ${LANGFUSE_PUBLIC_KEY:?run init.py}
+      LANGFUSE_INIT_PROJECT_SECRET_KEY: ${LANGFUSE_SECRET_KEY:?run init.py}
+      LANGFUSE_INIT_USER_EMAIL: admin@ppt.local
+      LANGFUSE_INIT_USER_NAME: PPT Administrator
+      LANGFUSE_INIT_USER_PASSWORD: ${ADMIN_PASSWORD:?run init.py}
+    mem_limit: 1200m
+    healthcheck:
+      test:
+      - CMD
+      - node
+      - -e
+      - fetch('http://localhost:3000/api/public/health').then(r=>process.exit(r.ok?0:1)).catch(()=>process.exit(1))
+      interval: 20s
+      timeout: 10s
+      start_period: 180s
+      retries: 12
+  langfuse-worker:
+    image: docker.langfuse.com/langfuse/langfuse-worker:4
+    restart: unless-stopped
+    depends_on: *id001
+    environment:
+      HOSTNAME: 0.0.0.0
+      DATABASE_URL: postgresql://ppt_langfuse:${POSTGRES_PASSWORD:?run langfuse/init.py}@postgres:5432/langfuse
+      NEXTAUTH_URL: http://localhost:3000
+      SALT: ${SALT:?run init.py}
+      ENCRYPTION_KEY: ${ENCRYPTION_KEY:?run init.py}
+      TELEMETRY_ENABLED: 'false'
+      CLICKHOUSE_MIGRATION_URL: clickhouse://clickhouse:9000
+      CLICKHOUSE_URL: http://clickhouse:8123
+      CLICKHOUSE_USER: langfuse
+      CLICKHOUSE_PASSWORD: ${CLICKHOUSE_PASSWORD:?run init.py}
+      CLICKHOUSE_CLUSTER_ENABLED: 'false'
+      REDIS_TLS_ENABLED: 'false'
+      LANGFUSE_S3_EVENT_UPLOAD_BUCKET: langfuse
+      LANGFUSE_S3_EVENT_UPLOAD_REGION: auto
+      LANGFUSE_S3_EVENT_UPLOAD_ACCESS_KEY_ID: ${LF_S3_ACCESS_KEY_ID:-pptadmin}
+      LANGFUSE_S3_EVENT_UPLOAD_SECRET_ACCESS_KEY: ${LF_S3_SECRET_ACCESS_KEY:-pptadmin123}
+      LANGFUSE_S3_EVENT_UPLOAD_ENDPOINT: http://minio:9000
+      LANGFUSE_S3_EVENT_UPLOAD_FORCE_PATH_STYLE: 'true'
+      LANGFUSE_S3_EVENT_UPLOAD_PREFIX: events/
+      LANGFUSE_S3_MEDIA_UPLOAD_BUCKET: langfuse
+      LANGFUSE_S3_MEDIA_UPLOAD_REGION: auto
+      LANGFUSE_S3_MEDIA_UPLOAD_ACCESS_KEY_ID: ${LF_S3_ACCESS_KEY_ID:-pptadmin}
+      LANGFUSE_S3_MEDIA_UPLOAD_SECRET_ACCESS_KEY: ${LF_S3_SECRET_ACCESS_KEY:-pptadmin123}
+      LANGFUSE_S3_MEDIA_UPLOAD_ENDPOINT: http://minio:9000
+      LANGFUSE_S3_MEDIA_UPLOAD_FORCE_PATH_STYLE: 'true'
+      LANGFUSE_S3_MEDIA_UPLOAD_PREFIX: media/
+      NODE_OPTIONS: --max-old-space-size=768
+      REDIS_CONNECTION_STRING: redis://redis:6379/4
+    mem_limit: 1100m
+    healthcheck:
+      test:
+      - CMD
+      - node
+      - -e
+      - fetch('http://localhost:3030/api/health').then(r=>process.exit(r.ok?0:1)).catch(()=>process.exit(1))
+      interval: 20s
+      timeout: 10s
+      start_period: 180s
+      retries: 12
+  clickhouse:
+    image: clickhouse/clickhouse-server:25.12
+    restart: unless-stopped
+    user: 101:101
+    environment:
+      CLICKHOUSE_DB: default
+      CLICKHOUSE_USER: langfuse
+      CLICKHOUSE_PASSWORD: ${CLICKHOUSE_PASSWORD:?run init.py}
+    volumes:
+    - langfuse-clickhouse-data:/var/lib/clickhouse
+    - langfuse-clickhouse-logs:/var/log/clickhouse-server
+    - ./langfuse/clickhouse.xml:/etc/clickhouse-server/config.d/local-resources.xml:ro
+    mem_limit: 1500m
+    healthcheck:
+      test:
+      - CMD-SHELL
+      - clickhouse-client --user "$$CLICKHOUSE_USER" --password "$$CLICKHOUSE_PASSWORD" --receive_timeout 3 --query 'SELECT 1'
+      interval: 10s
+      timeout: 5s
+      retries: 20
+volumes:
+  langfuse-clickhouse-data: null
+  langfuse-clickhouse-logs: null

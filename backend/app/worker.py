@@ -7,12 +7,19 @@
 """
 from celery import Celery
 from celery.signals import setup_logging as celery_setup_logging
+from celery.signals import worker_process_shutdown
 
 from app.core.config import get_settings
 from app.core.logging import get_logger, setup_logging
 
 settings = get_settings()
 logger = get_logger(__name__)
+
+
+@worker_process_shutdown.connect
+def _flush_observations(**_kwargs):
+    from app.observability import flush
+    flush()
 
 celery_app = Celery("ppt-generator", broker=settings.redis_url, backend=settings.redis_url)
 celery_app.conf.update(

@@ -5,12 +5,13 @@ backend/.venv/
 backend/tests/smoke_output.pptx
 
 # Node
-frontend/node_modules/
+node_modules/
 frontend/dist/
 frontend/*.tsbuildinfo
 
 # 环境与本地文件
 deploy/.env
+deploy/langfuse/.env
 backend/.env
 *.log
 .DS_Store

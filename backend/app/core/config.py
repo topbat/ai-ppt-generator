@@ -38,6 +38,17 @@ class Settings(BaseSettings):
     llm_max_retries: int = 2                    # 单次调用重试上限(含切换备用 Provider)
     llm_mock: bool = False                      # 无 API Key 时可开启, 用于本地联调
 
+    # ---- 模型观测：默认只本地计量，不向外发送正文 ----
+    langfuse_enabled: bool = False
+    langfuse_base_url: str = "https://cloud.langfuse.com"
+    langfuse_public_key: str = ""
+    langfuse_secret_key: str = ""
+    langfuse_ui_url: str = ""  # 浏览器地址；为空沿用 base_url
+    langfuse_project_id: str = ""
+    langfuse_capture_content: bool = False
+    metrics_access_token: str = ""  # 未配置时指标接口关闭
+    llm_prices_json: str = "{}"  # model -> input/output/cached/cache_creation，每百万 Token USD
+
     # ---- 具体模型选择（deepseek* / kimi* 按前缀路由，其余 → Qwen）----
     llm_model_fast: str = "qwen-flash"          # 极速模式主力（页面文案/摘要）
     llm_model_standard: str = "qwen-plus"       # 标准模式主力

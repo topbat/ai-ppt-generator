@@ -15,6 +15,7 @@ import JobDetail from './pages/job-detail/JobDetail';
 import Templates from './pages/Templates';
 import Beautify from './pages/Beautify';
 import PptMaster from './pages/PptMaster';
+import LlmMetrics from './pages/LlmMetrics';
 
 const { Header, Content } = Layout;
 
@@ -41,7 +42,7 @@ export default function App() {
   }, []);
 
   // 根据路径高亮菜单项
-  const selectedKey = location.pathname.startsWith('/templates')
+  const selectedKey = location.pathname.startsWith('/metrics') ? 'metrics' : location.pathname.startsWith('/templates')
     ? 'templates'
     : location.pathname.startsWith('/beautify')
       ? 'beautify'
@@ -52,7 +53,7 @@ export default function App() {
           : 'jobs';
 
   return (
-    <Layout style={{ minHeight: '100vh' }}>
+    <Layout className={selectedKey === 'metrics' ? 'metrics-layout' : undefined} style={{ minHeight: '100vh' }}>
       <Header
         style={{
           display: 'flex',
@@ -78,6 +79,7 @@ export default function App() {
             { key: 'templates', icon: <AppstoreOutlined />, label: <Link to="/templates">模板库</Link> },
             { key: 'beautify', icon: <HighlightOutlined />, label: <Link to="/beautify">PPT美化</Link> },
             { key: 'pptmaster', icon: <RocketOutlined />, label: <Link to="/pptmaster">ppt-master生成</Link> },
+            { key: 'metrics', icon: <AppstoreOutlined />, label: <Link to="/metrics">LLM 用量</Link> },
           ]}
         />
         <Space>
@@ -99,6 +101,7 @@ export default function App() {
           <Route path="/templates" element={<Templates />} />
           <Route path="/beautify" element={<Beautify />} />
           <Route path="/pptmaster" element={<PptMaster />} />
+          <Route path="/metrics" element={<LlmMetrics />} />
           <Route path="*" element={<Navigate to="/jobs" replace />} />
         </Routes>
       </Content>

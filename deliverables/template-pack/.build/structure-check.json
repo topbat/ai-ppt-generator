@@ -1,0 +1,47 @@
+[
+  {
+    "file": "01_经营分析_深蓝_填充模板.pptx",
+    "slides": 8,
+    "native_tables": 1,
+    "native_charts": 1,
+    "placeholders": 41,
+    "picture_placeholders": 1,
+    "embedded_workbooks": 1
+  },
+  {
+    "file": "02_项目方案_墨绿_填充模板.pptx",
+    "slides": 8,
+    "native_tables": 1,
+    "native_charts": 1,
+    "placeholders": 41,
+    "picture_placeholders": 1,
+    "embedded_workbooks": 1
+  },
+  {
+    "file": "03_产品介绍_紫黑_填充模板.pptx",
+    "slides": 8,
+    "native_tables": 1,
+    "native_charts": 1,
+    "placeholders": 41,
+    "picture_placeholders": 1,
+    "embedded_workbooks": 1
+  },
+  {
+    "file": "04_培训教学_暖橙_填充模板.pptx",
+    "slides": 8,
+    "native_tables": 1,
+    "native_charts": 1,
+    "placeholders": 41,
+    "picture_placeholders": 1,
+    "embedded_workbooks": 1
+  },
+  {
+    "file": "05_工作总结_朱红_填充模板.pptx",
+    "slides": 8,
+    "native_tables": 1,
+    "native_charts": 1,
+    "placeholders": 41,
+    "picture_placeholders": 1,
+    "embedded_workbooks": 1
+  }
+]

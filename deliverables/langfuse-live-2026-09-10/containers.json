@@ -1,0 +1,192 @@
+[
+  {
+    "name": "ppt-generator-langfuse-worker-1",
+    "service": "langfuse-worker",
+    "image": "docker.langfuse.com/langfuse/langfuse-worker:4",
+    "image_id": "sha256:bc245319e36c9c9f27d8725d04c42b92d641f524e0de27af596bf34a66d5a6d5",
+    "status": "running",
+    "health": "healthy",
+    "exit_code": 0,
+    "ports": {
+      "3030/tcp": null
+    }
+  },
+  {
+    "name": "ppt-generator-clickhouse-1",
+    "service": "clickhouse",
+    "image": "clickhouse/clickhouse-server:25.12",
+    "image_id": "sha256:deec6953c88c7db1d988e10c92a5952bbd5d5b56f727c39998c56de87b29a54b",
+    "status": "running",
+    "health": "healthy",
+    "exit_code": 0,
+    "ports": {
+      "8123/tcp": null,
+      "9000/tcp": null,
+      "9009/tcp": null
+    }
+  },
+  {
+    "name": "ppt-generator-langfuse-web-1",
+    "service": "langfuse-web",
+    "image": "docker.langfuse.com/langfuse/langfuse:4",
+    "image_id": "sha256:1e2bb860753bb61978e68270d70f194b204dc15c4278c1bb95ce904bc4e60123",
+    "status": "running",
+    "health": "healthy",
+    "exit_code": 0,
+    "ports": {
+      "3000/tcp": [
+        {
+          "HostIp": "127.0.0.1",
+          "HostPort": "3000"
+        }
+      ]
+    }
+  },
+  {
+    "name": "ppt-generator-pptmaster-worker-1",
+    "service": "pptmaster-worker",
+    "image": "ppt-generator-pptmaster-worker",
+    "image_id": "sha256:494cf3cd7d8eb5e2ce91b1bb6bafa05e822d91c71f62bdc0b308731cfb73e49e",
+    "status": "running",
+    "health": null,
+    "exit_code": 0,
+    "ports": {}
+  },
+  {
+    "name": "ppt-generator-worker-1",
+    "service": "worker",
+    "image": "ppt-generator-worker",
+    "image_id": "sha256:4baac2838befe2690b5cd2a03e5a7bda5a56aae3481f60cee762e518fcbaea46",
+    "status": "running",
+    "health": null,
+    "exit_code": 0,
+    "ports": {}
+  },
+  {
+    "name": "ppt-generator-api-1",
+    "service": "api",
+    "image": "ppt-generator-api",
+    "image_id": "sha256:c10833d0bbb62748944613bb5bcdd666eb1742ef77c5f74c532962610cdccf54",
+    "status": "running",
+    "health": "healthy",
+    "exit_code": 0,
+    "ports": {
+      "8000/tcp": [
+        {
+          "HostIp": "0.0.0.0",
+          "HostPort": "8000"
+        },
+        {
+          "HostIp": "::",
+          "HostPort": "8000"
+        }
+      ]
+    }
+  },
+  {
+    "name": "ppt-generator-langfuse-init-1",
+    "service": "langfuse-init",
+    "image": "ppt-generator-api:latest",
+    "image_id": "sha256:c10833d0bbb62748944613bb5bcdd666eb1742ef77c5f74c532962610cdccf54",
+    "status": "exited",
+    "health": null,
+    "exit_code": 0,
+    "ports": {}
+  },
+  {
+    "name": "ppt-generator-frontend-1",
+    "service": "frontend",
+    "image": "ppt-generator-frontend",
+    "image_id": "sha256:157bba644675e10e73a5f2f1d4a47a220ec9c3957e8dd6796801c8b009fb62b7",
+    "status": "running",
+    "health": null,
+    "exit_code": 0,
+    "ports": {
+      "80/tcp": [
+        {
+          "HostIp": "0.0.0.0",
+          "HostPort": "8081"
+        },
+        {
+          "HostIp": "::",
+          "HostPort": "8081"
+        }
+      ]
+    }
+  },
+  {
+    "name": "ppt-generator-minio-init-1",
+    "service": "minio-init",
+    "image": "minio/mc:latest",
+    "image_id": "sha256:a7fe349ef4bd8521fb8497f55c6042871b2ae640607cf99d9bede5e9bdf11727",
+    "status": "exited",
+    "health": null,
+    "exit_code": 0,
+    "ports": {}
+  },
+  {
+    "name": "ppt-generator-redis-1",
+    "service": "redis",
+    "image": "redis:7-alpine",
+    "image_id": "sha256:ff02b58f971e7d7d156a1267e283fcbbeee91773b6aa36c49dac28ecfe28eadf",
+    "status": "running",
+    "health": "healthy",
+    "exit_code": 0,
+    "ports": {
+      "6379/tcp": [
+        {
+          "HostIp": "127.0.0.1",
+          "HostPort": "16379"
+        }
+      ]
+    }
+  },
+  {
+    "name": "ppt-generator-postgres-1",
+    "service": "postgres",
+    "image": "pgvector/pgvector:pg16",
+    "image_id": "sha256:ccc6e83d6e35e931dc7c5def2022729d5a6c370318d099181995567ff1fb4d6b",
+    "status": "running",
+    "health": "healthy",
+    "exit_code": 0,
+    "ports": {
+      "5432/tcp": [
+        {
+          "HostIp": "127.0.0.1",
+          "HostPort": "15432"
+        }
+      ]
+    }
+  },
+  {
+    "name": "ppt-generator-minio-1",
+    "service": "minio",
+    "image": "minio/minio:latest",
+    "image_id": "sha256:14cea493d9a34af32f524e538b8346cf79f3321eff8e708c1e2960462bd8936e",
+    "status": "running",
+    "health": "healthy",
+    "exit_code": 0,
+    "ports": {
+      "9000/tcp": [
+        {
+          "HostIp": "0.0.0.0",
+          "HostPort": "9000"
+        },
+        {
+          "HostIp": "::",
+          "HostPort": "9000"
+        }
+      ],
+      "9001/tcp": [
+        {
+          "HostIp": "0.0.0.0",
+          "HostPort": "9001"
+        },
+        {
+          "HostIp": "::",
+          "HostPort": "9001"
+        }
+      ]
+    }
+  }
+]

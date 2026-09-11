@@ -17,7 +17,7 @@ sys.path.insert(0, os.path.join(os.path.dirname(__file__), ".."))
 
 from app.pptmaster import catalog  # noqa: E402
 from app.pptmaster.prompt import build_prompt  # noqa: E402
-from app.pptmaster.runner import (AgentInfo, ClaudeRunner, CodexRunner, MockRunner,  # noqa: E402
+from app.pptmaster.runner import (AgentInfo, ClaudeRunner, CodexRunner, MockRunner, RunResult,  # noqa: E402
                                   agent_env, detect_agents)
 from app.pptmaster import service as pptmaster_service  # noqa: E402
 from app.pptmaster.service import _ProgressMonitor, _classify_pptx  # noqa: E402
@@ -102,6 +102,84 @@ def test_runner_cmds():
     agents = {a.key: a for a in detect_agents(force=True)}
     assert agents["mock"].available
     print("[ok] runner cmds; agents:", {k: v.available for k, v in agents.items()})
+
+
+def test_claude_runner_can_resume_the_recorded_session():
+    runner = ClaudeRunner("claude", "opus")
+    command = runner.build_cmd(
+        "continue and export",
+        "/repo",
+        resume_session_id="5001a6b1-88d9-40da-aef8-8bc65eab8287",
+    )
+    assert "--resume" in command
+    assert command[command.index("--resume") + 1] == "5001a6b1-88d9-40da-aef8-8bc65eab8287"
+
+    result = RunResult(0)
+    runner.extract_final([
+        {
+            "type": "system",
+            "subtype": "init",
+            "session_id": "5001a6b1-88d9-40da-aef8-8bc65eab8287",
+        },
+        {
+            "type": "result",
+            "subtype": "success",
+            "session_id": "5001a6b1-88d9-40da-aef8-8bc65eab8287",
+            "result": "work summary without delivery receipt",
+            "num_turns": 130,
+        },
+    ], result)
+    assert result.extra["session_id"] == "5001a6b1-88d9-40da-aef8-8bc65eab8287"
+
+
+def test_incomplete_clean_exit_requests_one_contract_resume():
+    tmp = tempfile.mkdtemp(prefix="pm_resume_contract_")
+    try:
+        os.makedirs(os.path.join(tmp, "exports"))
+        result = RunResult(
+            returncode=0,
+            final_text="Summary mentions `DONE: <path>` but did not actually finish.",
+            num_turns=130,
+            extra={"session_id": "5001a6b1-88d9-40da-aef8-8bc65eab8287"},
+        )
+        assert pptmaster_service._resume_session_for_incomplete_delivery(tmp, result) == result.extra["session_id"]
+
+        result.final_text = "FAILED: quality gate could not be repaired"
+        assert pptmaster_service._resume_session_for_incomplete_delivery(tmp, result) is None
+
+        result.final_text = "DONE: projects/x/exports/deck.pptx"
+        Path(tmp, "exports", "deck.pptx").write_bytes(b"pptx")
+        assert pptmaster_service._resume_session_for_incomplete_delivery(tmp, result) is None
+
+        merged = pptmaster_service._merge_resumed_result(
+            RunResult(0, cost_usd=7.8, num_turns=130, extra={"session_id": "session"}),
+            RunResult(0, cost_usd=0.4, num_turns=6, final_text="DONE: deck.pptx"),
+        )
+        assert round(merged.cost_usd or 0, 2) == 8.2
+        assert merged.num_turns == 136
+        assert merged.extra["resume_attempts"] == 1
+        assert merged.extra["initial_num_turns"] == 130
+        assert merged.extra["resume_num_turns"] == 6
+    finally:
+        shutil.rmtree(tmp, ignore_errors=True)
+
+
+def test_search_prompt_prevents_known_image_and_icon_gate_rework():
+    prompt = build_prompt(
+        "pm_search",
+        {
+            "input_mode": "topic",
+            "topic": "AI education",
+            "route": "generate",
+            "profile": "default",
+            "image_source": "search",
+        },
+        [],
+        None,
+    )
+    assert "MPO" in prompt
+    assert "icons.inventory" in prompt
+    assert "§VIII" in prompt
 
 
 def test_worker_resolves_requested_agent():
@@ -490,6 +568,9 @@ if __name__ == "__main__":
     test_catalog()
     test_prompt()
     test_runner_cmds()
+    test_claude_runner_can_resume_the_recorded_session()
+    test_incomplete_clean_exit_requests_one_contract_resume()
+    test_search_prompt_prevents_known_image_and_icon_gate_rework()
     test_worker_resolves_requested_agent()
     test_api_defers_agent_availability_to_worker()
     test_options_reports_worker_managed_capabilities()

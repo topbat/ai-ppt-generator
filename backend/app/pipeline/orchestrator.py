@@ -8,6 +8,7 @@
 """
 import time
 from concurrent.futures import ThreadPoolExecutor
+from contextvars import copy_context
 from datetime import datetime, timezone
 
 from sqlalchemy import select
@@ -23,6 +24,7 @@ from app.pipeline.modes.pipelines import PIPELINES, total_weight
 from app.pipeline.stages.base import Stage
 from app.services.progress import ProgressPublisher
 from app.services.storage import get_storage
+from app.observability import stage_scope
 
 logger = get_logger(__name__)
 
@@ -91,7 +93,7 @@ def run_job(job_pk: int, resume: bool = False) -> None:
                     futures = []
                     for s in group:
                         seq += 1
-                        futures.append(pool.submit(_run_stage, ctx, s, seq, completed))
+                        futures.append(pool.submit(copy_context().run, _run_stage, ctx, s, seq, completed))
                     for f in futures:
                         f.result()  # 任一失败向上抛
             done_w += sum(s.weight for s in group)
@@ -142,7 +144,8 @@ def _run_stage(ctx: JobContext, stage: Stage, seq: int, completed: dict[str, str
     ctx.publisher.stage_update(stage.code, "running")
     t0 = time.monotonic()
     try:
-        out = stage.run(ctx) or {}
+        with stage_scope(ctx.job_pk, stage.code, ctx.mode):
+            out = stage.run(ctx) or {}
     except PPTError as e:
         duration = int((time.monotonic() - t0) * 1000)
         _record_stage(ctx, stage, seq, "failed", now, datetime.now(timezone.utc), duration,

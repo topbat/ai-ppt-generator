@@ -365,6 +365,63 @@ def _collect_outputs(project: str, biz_id: str) -> tuple[list[dict], str | None,
     return outputs, primary, page_count
 
 
+def _last_delivery_line(text: str) -> str:
+    lines = [line.strip() for line in (text or "").splitlines() if line.strip()]
+    return lines[-1] if lines else ""
+
+
+def _resume_session_for_incomplete_delivery(project: str, result: RunResult) -> str | None:
+    """Return a Claude session id only for a clean exit that did not fulfill delivery."""
+    if result.returncode != 0 or result.timed_out or result.canceled:
+        return None
+    if glob.glob(os.path.join(project, "exports", "*.pptx")):
+        return None
+    if _last_delivery_line(result.final_text).upper().startswith("FAILED:"):
+        return None
+    session_id = result.extra.get("session_id")
+    return str(session_id) if session_id else None
+
+
+def _merge_resumed_result(initial: RunResult, resumed: RunResult) -> RunResult:
+    """Preserve total usage while making the resumed run the terminal process result."""
+    from app.observability import sum_usage
+    usage = sum_usage([initial.extra.get('usage'), resumed.extra.get('usage')])
+    usage_source = ('reported' if all(r.extra.get('usage_source') == 'reported' for r in (initial, resumed)) else 'partial')
+    resumed.cost_usd = (float(initial.cost_usd) + float(resumed.cost_usd)
+                       if initial.cost_usd is not None and resumed.cost_usd is not None else None)
+    if initial.num_turns is not None or resumed.num_turns is not None:
+        resumed.num_turns = int(initial.num_turns or 0) + int(resumed.num_turns or 0)
+    resumed.extra = {
+        **initial.extra,
+        **resumed.extra,
+        "usage": usage,
+        "usage_source": usage_source,
+        "resume_attempts": 1,
+        "initial_num_turns": initial.num_turns,
+        "resume_num_turns": resumed.num_turns - int(initial.num_turns or 0)
+        if resumed.num_turns is not None else None,
+    }
+    return resumed
+
+
+def _run_agent_observed(runner, job_pk, agent_key, model, attempt, *args, **kwargs):
+    """记录一次真实 CLI 运行；续跑是新的消耗，mock 不进入账本。"""
+    if agent_key == 'mock':
+        return runner.run(*args, **kwargs)
+    from app.observability import capture, normalize_usage
+    with capture(engine='pptmaster', kind='agent_run', job_id=job_pk, provider=agent_key,
+                 model=model or 'unknown', task_type='agent_run', attempt=attempt) as event:
+        result = runner.run(*args, **kwargs)
+        event.update(normalize_usage(result.extra.get('usage')))
+        event['usage_source'] = result.extra.get('usage_source', 'unknown')
+        event['cost_usd'] = result.cost_usd
+        event['cost_source'] = 'reported' if result.cost_usd is not None else 'unknown'
+        event['status'] = ('canceled' if result.canceled else 'timeout' if result.timed_out else
+                           'failed' if result.returncode != 0 or result.error else 'success')
+        event['error_type'] = None if event['status'] == 'success' else event['status']
+        return result
+
+
 def _recovery_expected_pages(project: str, params: dict) -> int | None:
     configured = params.get("pages")
     if configured:
@@ -626,13 +683,41 @@ def run_pptmaster_job(job_pk: int) -> None:
         monitor = _ProgressMonitor(job_pk, project, log_path, int(pages) if pages else None)
         monitor.start()
 
-        result: RunResult = runner.run(
+        result: RunResult = _run_agent_observed(runner, job_pk, agent_key, model, 1,
             prompt, repo_dir(), agent_env(repo_dir()), log_path,
             on_line=monitor.on_line,
             should_cancel=lambda: _cancel_requested(job_pk),
             timeout_s=timeout_min * 60,
             on_pid=lambda pid: _update(job_pk, agent_pid=pid),
         )
+        resume_session_id = _resume_session_for_incomplete_delivery(project, result)
+        if resume_session_id and agent_key == "claude":
+            remaining_s = max(0, int(timeout_min * 60 - (time.monotonic() - started)))
+            if remaining_s >= 60:
+                _update(job_pk, stage="Agent 未完成交付，续跑一次", progress=max(90, monitor.progress))
+                continuation = (
+                    f"继续完成当前项目 `{project_rel}/`，不要重新规划或重做已经完成的页面。"
+                    "上一次进程以工作摘要结束，但 exports/ 仍为空。请从当前文件和现有 final 质量报告恢复，"
+                    "一次性修复全部 blocking 问题；不得绕过质量门禁。若已用图片/图标缺少 Design Spec §VIII "
+                    "或 spec_lock.md images 登记，请先同步修复规格和锁，再重新运行完整 final 检查，"
+                    "随后严格串行执行 finalize_svg.py 与 svg_to_pptx.py 完成导出。"
+                    "最终回复只允许一行 `DONE: <相对仓库根的 pptx 路径>` 或 `FAILED: <一句话原因>`。"
+                )
+                resumed = _run_agent_observed(runner, job_pk, agent_key, model, 2,
+                    continuation, repo_dir(), agent_env(repo_dir()), log_path,
+                    on_line=monitor.on_line,
+                    should_cancel=lambda: _cancel_requested(job_pk),
+                    timeout_s=remaining_s,
+                    on_pid=lambda pid: _update(job_pk, agent_pid=pid),
+                    resume_session_id=resume_session_id,
+                )
+                result = _merge_resumed_result(result, resumed)
+                if _resume_session_for_incomplete_delivery(project, result):
+                    result.error = "Agent 已自动续跑一次，但仍未给出有效交付回执且 exports/ 为空"
+                    result.extra["delivery_contract_incomplete"] = True
+            else:
+                result.error = "Agent 正常退出但未完成交付，任务剩余超时不足，未启动自动续跑"
+                result.extra["delivery_contract_incomplete"] = True
         monitor.stop()
         monitor.flush(force=True)
 
@@ -672,6 +757,10 @@ def run_pptmaster_job(job_pk: int) -> None:
         failed_line = next((ln for ln in final_text.splitlines() if ln.strip().upper().startswith("FAILED:")), None)
         extra = {"cost_usd": result.cost_usd, "num_turns": result.num_turns,
                  "returncode": result.returncode, "final_text": final_text[-1000:]}
+        for key in ("usage", "usage_source", "session_id", "resume_attempts", "initial_num_turns", "resume_num_turns",
+                    "delivery_contract_incomplete"):
+            if key in result.extra:
+                extra[key] = result.extra[key]
         if recovery_audit:
             extra["recovery"] = recovery_audit
         if result.canceled:

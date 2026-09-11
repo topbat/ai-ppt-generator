@@ -8,6 +8,7 @@
 """
 import time
 from concurrent.futures import ThreadPoolExecutor, as_completed
+from contextvars import copy_context
 
 from app.ai.agents.content_agent import generate_chapter_batch, generate_page
 from app.ai.gateway import get_gateway
@@ -144,7 +145,7 @@ class ContentStage(Stage):
         workers = min(get_settings().content_parallelism, max(1, len(by_chapter)))
         logger.info("章节并行生成：%d 章 / 并发 %d", len(by_chapter), workers)
         with ThreadPoolExecutor(max_workers=workers) as pool:
-            futures = [pool.submit(gen_chapter, ci, plans) for ci, plans in by_chapter.items()]
+            futures = [pool.submit(copy_context().run, gen_chapter, ci, plans) for ci, plans in by_chapter.items()]
             for f in as_completed(futures):
                 branches.append(f.result())
                 self._publish_progress(ctx, pages, issues_by_page)
@@ -173,7 +174,7 @@ class ContentStage(Stage):
         workers = min(get_settings().content_parallelism, max(1, len(content_plan)))
         logger.info("页级并行生成：%d 页 / 并发 %d", len(content_plan), workers)
         with ThreadPoolExecutor(max_workers=workers) as pool:
-            futures = [pool.submit(gen_one, p) for p in content_plan]
+            futures = [pool.submit(copy_context().run, gen_one, p) for p in content_plan]
             done = 0
             for f in as_completed(futures):
                 branches.append(f.result())

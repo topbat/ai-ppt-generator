@@ -1,0 +1,100 @@
+{"kind":"deck","id":"pr/9qi4jc","name":"Deck"}
+{"kind":"layout","layoutId":"9744daef-3fdf-460b-81f3-80d969e36d41","name":"Master","type":"master"}
+{"kind":"layout","layoutId":"a4ff1a52-c2bb-4c5a-8833-7562038b7a55","name":"Title Slide","type":"title"}
+{"kind":"slide","id":"sl/qiaw75","slide":1,"title":"组织名称","textShapes":6}
+{"kind":"textbox","id":"sh/07e9wnyl","slide":1,"name":"组织名称","text":"组织名称","textPreview":"组织名称","textChars":4,"textLines":1,"bbox":[72,42,480,40]}
+{"kind":"textbox","id":"sh/f65snih0","slide":1,"name":"英文分类","text":"LEARNING SESSION","textPreview":"LEARNING SESSION","textChars":16,"textLines":1,"bbox":[72,182,1040,44]}
+{"kind":"textbox","id":"sh/e5crudgf","slide":1,"name":"主标题","text":"主题培训课程","textPreview":"主题培训课程","textChars":6,"textLines":1,"bbox":[72,270,1090,118]}
+{"kind":"textbox","id":"sh/dk3al8zu","slide":1,"name":"副标题","text":"课程主题 / 适用学员 / 授课人","textPreview":"课程主题 / 适用学员 / 授课人","textChars":17,"textLines":1,"bbox":[76,425,1000,52]}
+{"kind":"textbox","id":"sh/sju9s3y9","slide":1,"name":"日期","text":"汇报日期：YYYY.MM.DD","textPreview":"汇报日期：YYYY.MM.DD","textChars":15,"textLines":1,"bbox":[76,614,800,32]}
+{"kind":"textbox","id":"sh/rilszyho","slide":1,"name":"模板编号","text":"TEMPLATE 04","textPreview":"TEMPLATE 04","textChars":11,"textLines":1,"bbox":[1034,614,190,32]}
+{"kind":"notes","id":"nt/qiaw75","slide":1,"text":""}
+{"kind":"slide","id":"sl/u4ug0j","slide":2,"title":"组织名称","textShapes":13}
+{"kind":"textbox","id":"sh/f2dovexw","slide":2,"name":"组织名称","text":"组织名称","textPreview":"组织名称","textChars":4,"textLines":1,"bbox":[64,25,300,25]}
+{"kind":"textbox","id":"sh/g3mpojeh","slide":2,"name":"页码","text":"02 / 08","textPreview":"02 / 08","textChars":7,"textLines":1,"bbox":[1110,25,105,25]}
+{"kind":"textbox","id":"sh/h4v6xof2","slide":2,"name":"页面标题","text":"内容目录","textPreview":"内容目录","textChars":4,"textLines":1,"bbox":[64,86,1148,72]}
+{"kind":"shape","id":"sh/6xk7i9gf","slide":2,"name":"分隔线","bbox":[64,177,1152,1]}
+{"kind":"textbox","id":"sh/7ytorex0","slide":2,"name":"模板说明","text":"模板示例 · 请替换内容","textPreview":"模板示例 · 请替换内容","textChars":12,"textLines":1,"bbox":[64,673,670,24]}
+{"kind":"textbox","id":"sh/sz2pkjy5","slide":2,"name":"页面类型","text":"目录页","textPreview":"目录页","textChars":3,"textLines":1,"bbox":[988,673,230,24]}
+{"kind":"textbox","id":"sh/t0b6tofq","slide":2,"name":"章节序号_0","text":"01","textPreview":"01","textChars":2,"textLines":1,"bbox":[88,216,100,62]}
+{"kind":"textbox","id":"sh/qto7utwj","slide":2,"name":"章节标题_0","text":"学习目标","textPreview":"学习目标","textChars":4,"textLines":1,"bbox":[220,218,905,60]}
+{"kind":"shape","id":"sh/ruxo3yx4","slide":2,"name":"分隔线","bbox":[220,296,920,1]}
+{"kind":"textbox","id":"sh/bq14juxg","slide":2,"name":"章节序号_1","text":"02","textPreview":"02","textChars":2,"textLines":1,"bbox":[88,317,100,62]}
+{"kind":"textbox","id":"sh/apsnqpwv","slide":2,"name":"章节标题_1","text":"核心知识","textPreview":"核心知识","textChars":4,"textLines":1,"bbox":[220,319,905,60]}
+{"kind":"shape","id":"sh/xsj6l4f6","slide":2,"name":"分隔线","bbox":[220,397,920,1]}
+{"kind":"textbox","id":"sh/cra5szel","slide":2,"name":"章节序号_2","text":"03","textPreview":"03","textChars":2,"textLines":1,"bbox":[88,418,100,62]}
+{"kind":"textbox","id":"sh/ze1onexc","slide":2,"name":"章节标题_2","text":"案例练习","textPreview":"案例练习","textChars":4,"textLines":1,"bbox":[220,420,905,60]}
+{"kind":"shape","id":"sh/ytsnu9wr","slide":2,"name":"分隔线","bbox":[220,498,920,1]}
+{"kind":"textbox","id":"sh/lg36p4fi","slide":2,"name":"章节序号_3","text":"04","textPreview":"04","textChars":2,"textLines":1,"bbox":[88,519,100,62]}
+{"kind":"textbox","id":"sh/kfu5wjex","slide":2,"name":"章节标题_3","text":"课后应用","textPreview":"课后应用","textChars":4,"textLines":1,"bbox":[220,521,905,60]}
+{"kind":"notes","id":"nt/u4ug0j","slide":2,"text":""}
+{"kind":"slide","id":"sl/d9czqh","slide":3,"title":"01","textShapes":4}
+{"kind":"textbox","id":"sh/nmlwred8","slide":3,"name":"章节编号","text":"01","textPreview":"01","textChars":2,"textLines":1,"bbox":[72,68,480,180]}
+{"kind":"textbox","id":"sh/8nud0zut","slide":3,"name":"章节标题","text":"核心知识与实践方法","textPreview":"核心知识与实践方法","textChars":9,"textLines":1,"bbox":[76,315,1128,100]}
+{"kind":"textbox","id":"sh/9o3et4ve","slide":3,"name":"章节摘要","text":"填写本章节的核心内容与讨论范围","textPreview":"填写本章节的核心内容与讨论范围","textChars":15,"textLines":1,"bbox":[80,465,1050,58]}
+{"kind":"textbox","id":"sh/yhsvupcr","slide":3,"name":"模板说明","text":"组织名称 / 章节过渡页","textPreview":"组织名称 / 章节过渡页","textChars":12,"textLines":1,"bbox":[80,655,700,28]}
+{"kind":"notes","id":"nt/d9czqh","slide":3,"text":""}
+{"kind":"slide","id":"sl/yiaqkx","slide":4,"title":"组织名称","textShapes":19}
+{"kind":"textbox","id":"sh/nutgfu14","slide":4,"name":"组织名称","text":"组织名称","textPreview":"组织名称","textChars":4,"textLines":1,"bbox":[64,25,300,25]}
+{"kind":"textbox","id":"sh/ov2h8zip","slide":4,"name":"页码","text":"04 / 08","textPreview":"04 / 08","textChars":7,"textLines":1,"bbox":[1110,25,105,25]}
+{"kind":"textbox","id":"sh/pwvyh4ju","slide":4,"name":"页面标题","text":"关键概念与实际应用","textPreview":"关键概念与实际应用","textChars":9,"textLines":1,"bbox":[64,86,1148,72]}
+{"kind":"shape","id":"sh/ax4za90f","slide":4,"name":"分隔线","bbox":[64,177,1152,1]}
+{"kind":"textbox","id":"sh/bydgje10","slide":4,"name":"模板说明","text":"模板示例 · 请替换内容","textPreview":"模板示例 · 请替换内容","textChars":12,"textLines":1,"bbox":[64,673,670,24]}
+{"kind":"textbox","id":"sh/czmhcjil","slide":4,"name":"页面类型","text":"双栏内容页","textPreview":"双栏内容页","textChars":5,"textLines":1,"bbox":[988,673,230,24]}
+{"kind":"textbox","id":"sh/x0vyloj6","slide":4,"name":"左栏标题","text":"知识要点","textPreview":"知识要点","textChars":4,"textLines":1,"bbox":[76,216,510,51]}
+{"kind":"textbox","id":"sh/q10fe5kb","slide":4,"name":"右栏标题","text":"应用提示","textPreview":"应用提示","textChars":4,"textLines":1,"bbox":[688,216,510,51]}
+{"kind":"textbox","id":"sh/r29g7a1w","slide":4,"name":"要点编号_0","text":"01","textPreview":"01","textChars":2,"textLines":1,"bbox":[76,300,48,32]}
+{"kind":"textbox","id":"sh/ryhcfmpk","slide":4,"name":"内容要点_0","text":"用一句话解释核心概念","textPreview":"用一句话解释核心概念","textChars":10,"textLines":1,"bbox":[136,300,450,67]}
+{"kind":"textbox","id":"sh/qxovmhoz","slide":4,"name":"要点编号_1","text":"02","textPreview":"02","textChars":2,"textLines":1,"bbox":[76,402,48,32]}
+{"kind":"textbox","id":"sh/d0zuhw7q","slide":4,"name":"内容要点_1","text":"理解概念所需的背景","textPreview":"理解概念所需的背景","textChars":9,"textLines":1,"bbox":[136,402,450,67]}
+{"kind":"textbox","id":"sh/szqdor65","slide":4,"name":"要点编号_2","text":"03","textPreview":"03","textChars":2,"textLines":1,"bbox":[76,504,48,32]}
+{"kind":"textbox","id":"sh/3uxcb2po","slide":4,"name":"内容要点_2","text":"概念的适用条件与边界","textPreview":"概念的适用条件与边界","textChars":10,"textLines":1,"bbox":[136,504,450,67]}
+{"kind":"textbox","id":"sh/itovixo3","slide":4,"name":"要点编号_0","text":"01","textPreview":"01","textChars":2,"textLines":1,"bbox":[688,300,48,32]}
+{"kind":"textbox","id":"sh/5wfudc7e","slide":4,"name":"内容要点_0","text":"工作中何时使用这一方法","textPreview":"工作中何时使用这一方法","textChars":11,"textLines":1,"bbox":[748,300,450,67]}
+{"kind":"textbox","id":"sh/4v6dk769","slide":4,"name":"要点编号_1","text":"02","textPreview":"02","textChars":2,"textLines":1,"bbox":[688,402,48,32]}
+{"kind":"textbox","id":"sh/v6dc72pc","slide":4,"name":"内容要点_1","text":"一个贴近实际的使用案例","textPreview":"一个贴近实际的使用案例","textChars":11,"textLines":1,"bbox":[748,402,450,67]}
+{"kind":"textbox","id":"sh/u54bexor","slide":4,"name":"要点编号_2","text":"03","textPreview":"03","textChars":2,"textLines":1,"bbox":[688,504,48,32]}
+{"kind":"textbox","id":"sh/y14vqxsz","slide":4,"name":"内容要点_2","text":"常见错误及纠正方式","textPreview":"常见错误及纠正方式","textChars":9,"textLines":1,"bbox":[748,504,450,67]}
+{"kind":"notes","id":"nt/yiaqkx","slide":4,"text":""}
+{"kind":"slide","id":"sl/ytcvpp","slide":5,"title":"组织名称","textShapes":9}
+{"kind":"textbox","id":"sh/2xkzido7","slide":5,"name":"组织名称","text":"组织名称","textPreview":"组织名称","textChars":4,"textLines":1,"bbox":[64,25,300,25]}
+{"kind":"textbox","id":"sh/p0byd87y","slide":5,"name":"页码","text":"05 / 08","textPreview":"05 / 08","textChars":7,"textLines":1,"bbox":[1110,25,105,25]}
+{"kind":"textbox","id":"sh/oz2hk36d","slide":5,"name":"页面标题","text":"练习结果分布","textPreview":"练习结果分布","textChars":6,"textLines":1,"bbox":[64,86,1148,72]}
+{"kind":"shape","id":"sh/fatg7ypw","slide":5,"name":"分隔线","bbox":[64,177,1152,1]}
+{"kind":"textbox","id":"sh/e9kfet8b","slide":5,"name":"模板说明","text":"模板示例 · 请替换内容","textPreview":"模板示例 · 请替换内容","textChars":12,"textLines":1,"bbox":[64,673,670,24]}
+{"kind":"textbox","id":"sh/1wby9872","slide":5,"name":"页面类型","text":"原生图表页","textPreview":"原生图表页","textChars":5,"textLines":1,"bbox":[988,673,230,24]}
+{"kind":"textbox","id":"sh/gb2xg3qh","slide":5,"name":"数据声明","text":"示例数据，非真实业务结果；单位：示例值","textPreview":"示例数据，非真实业务结果；单位：示例值","textChars":19,"textLines":1,"bbox":[74,203,1020,33]}
+{"kind":"textbox","id":"sh/y54zqxof","slide":5,"name":"结论标题","text":"分析结论","textPreview":"分析结论","textChars":4,"textLines":1,"bbox":[928,270,286,44]}
+{"kind":"textbox","id":"sh/8jml4n6h","slide":5,"name":"结论正文","text":"填写变化趋势\n解释主要原因\n说明业务影响","textPreview":"填写变化趋势 | 解释主要原因 | 说明业务影响","textChars":20,"textLines":3,"bbox":[928,340,278,180]}
+{"kind":"textbox","id":"sh/9kv2x872","slide":5,"name":"来源标注","text":"数据来源：待填写","textPreview":"数据来源：待填写","textChars":8,"textLines":1,"bbox":[928,571,278,44]}
+{"kind":"chart","id":"ch/belkn6dk","slide":5,"name":"","chartType":"bar","bbox":[64,260,804,350]}
+{"kind":"notes","id":"nt/ytcvpp","slide":5,"text":"本页数值仅为展示原生图表布局的示例，不代表真实业务结果。"}
+{"kind":"slide","id":"sl/tgza8q","slide":6,"title":"组织名称","textShapes":7}
+{"kind":"textbox","id":"sh/rah47adw","slide":6,"name":"组织名称","text":"组织名称","textPreview":"组织名称","textChars":4,"textLines":1,"bbox":[64,25,300,25]}
+{"kind":"textbox","id":"sh/sbql0fuh","slide":6,"name":"页码","text":"06 / 08","textPreview":"06 / 08","textChars":7,"textLines":1,"bbox":[1110,25,105,25]}
+{"kind":"textbox","id":"sh/dcjm9kbm","slide":6,"name":"页面标题","text":"练习与反馈","textPreview":"练习与反馈","textChars":5,"textLines":1,"bbox":[64,86,1148,72]}
+{"kind":"shape","id":"sh/il83u5cz","slide":6,"name":"分隔线","bbox":[64,177,1152,1]}
+{"kind":"textbox","id":"sh/3mhk3adk","slide":6,"name":"模板说明","text":"模板示例 · 请替换内容","textPreview":"模板示例 · 请替换内容","textChars":12,"textLines":1,"bbox":[64,673,670,24]}
+{"kind":"textbox","id":"sh/4nqlwfu5","slide":6,"name":"页面类型","text":"原生表格页","textPreview":"原生表格页","textChars":5,"textLines":1,"bbox":[988,673,230,24]}
+{"kind":"textbox","id":"sh/58zm5kvq","slide":6,"name":"表格摘要","text":"填写本页计划、清单或对照关系的说明","textPreview":"填写本页计划、清单或对照关系的说明","textChars":17,"textLines":1,"bbox":[72,205,1136,44]}
+{"kind":"textbox","id":"sh/ni14fut4","slide":6,"name":"补充说明","text":"补充说明：填写相关约束、依赖条件或更新日期","textPreview":"补充说明：填写相关约束、依赖条件或更新日期","textChars":21,"textLines":1,"bbox":[74,596,1110,42]}
+{"kind":"table","id":"tb/7ut4nq5w","slide":6,"name":"","rows":4,"cols":4,"preview":"练习任务 | 完成要求 | 检查标准 | 反馈记录","bbox":[72,292,1136,272]}
+{"kind":"notes","id":"nt/tgza8q","slide":6,"text":""}
+{"kind":"slide","id":"sl/2wjx09","slide":7,"title":"组织名称","textShapes":9}
+{"kind":"textbox","id":"sh/0b61g32x","slide":7,"name":"组织名称","text":"组织名称","textPreview":"组织名称","textChars":4,"textLines":1,"bbox":[64,25,300,25]}
+{"kind":"textbox","id":"sh/zax0nylc","slide":7,"name":"页码","text":"07 / 08","textPreview":"07 / 08","textChars":7,"textLines":1,"bbox":[1110,25,105,25]}
+{"kind":"textbox","id":"sh/y9ozetkr","slide":7,"name":"页面标题","text":"操作示例与讲解","textPreview":"操作示例与讲解","textChars":7,"textLines":1,"bbox":[64,86,1148,72]}
+{"kind":"shape","id":"sh/90zit8je","slide":7,"name":"分隔线","bbox":[64,177,1152,1]}
+{"kind":"textbox","id":"sh/8fq1k32t","slide":7,"name":"模板说明","text":"模板示例 · 请替换内容","textPreview":"模板示例 · 请替换内容","textChars":12,"textLines":1,"bbox":[64,673,670,24]}
+{"kind":"textbox","id":"sh/neh0ry18","slide":7,"name":"页面类型","text":"图文内容页","textPreview":"图文内容页","textChars":5,"textLines":1,"bbox":[988,673,230,24]}
+{"kind":"textbox","id":"sh/mdojidkn","slide":7,"name":"可替换图片_横向","text":"图片占位\n操作截图 / 教学案例","textPreview":"图片占位 | 操作截图 / 教学案例","textChars":16,"textLines":2,"bbox":[72,233,688,387]}
+{"kind":"textbox","id":"sh/x4zixsja","slide":7,"name":"图文小标题","text":"案例 / 场景名称","textPreview":"案例 / 场景名称","textChars":9,"textLines":1,"bbox":[819,232,387,65]}
+{"kind":"textbox","id":"sh/w3q1on25","slide":7,"name":"场景描述","text":"填写场景背景\n说明对象与关键过程","textPreview":"填写场景背景 | 说明对象与关键过程","textChars":16,"textLines":2,"bbox":[820,324,384,111]}
+{"kind":"textbox","id":"sh/alwze987","slide":7,"name":"场景价值","text":"填写成果价值\n说明需要强调的细节","textPreview":"填写成果价值 | 说明需要强调的细节","textChars":16,"textLines":2,"bbox":[820,471,384,111]}
+{"kind":"notes","id":"nt/2wjx09","slide":7,"text":""}
+{"kind":"slide","id":"sl/fkcxcd","slide":8,"title":"课程回顾与练习","textShapes":4}
+{"kind":"textbox","id":"sh/7u5w7yts","slide":8,"name":"结束标题","text":"课程回顾与练习","textPreview":"课程回顾与练习","textChars":7,"textLines":1,"bbox":[74,165,1134,112]}
+{"kind":"textbox","id":"sh/svex03ad","slide":8,"name":"结束摘要","text":"关键知识 · 工作应用 · 课后任务","textPreview":"关键知识 · 工作应用 · 课后任务","textChars":18,"textLines":1,"bbox":[80,322,1116,70]}
+{"kind":"textbox","id":"sh/twne98by","slide":8,"name":"下一步说明","text":"填写最重要的下一步安排","textPreview":"填写最重要的下一步安排","textChars":11,"textLines":1,"bbox":[80,438,1100,61]}
+{"kind":"textbox","id":"sh/uxgf2ds3","slide":8,"name":"联系信息","text":"联系人 / 部门 / 联系方式","textPreview":"联系人 / 部门 / 联系方式","textChars":15,"textLines":1,"bbox":[80,622,1090,40]}
+{"kind":"notes","id":"nt/fkcxcd","slide":8,"text":""}

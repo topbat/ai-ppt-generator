@@ -155,6 +155,7 @@ def test_kimi_uses_dedicated_openai_compatible_provider(monkeypatch):
         "api_key": "kimi-secret",
         "base_url": "https://kimi.example/v1",
         "timeout": settings.llm_timeout_seconds,
+        "max_retries": 0,  # 网关显式重试，确保每次实际请求都被计量
     }]
 
 

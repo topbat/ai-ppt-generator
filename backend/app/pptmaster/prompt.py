@@ -117,6 +117,8 @@ def build_prompt(biz_id: str, params: dict, source_rel_paths: list[str],
         reqs.append("图片素材：不使用外部图片（不生图、不搜图），用原生形状/图标/图表表达")
     elif img == "search":
         reqs.append("图片素材：优先网络图库搜索（image_search.py），必要时加署名；不做 AI 生图")
+        reqs.append("图库文件格式：搜索下载并 analyze_images.py 后，绘制 SVG 前核对 Pillow 识别的真实格式；"
+                    "若识别为 MPO 或与扩展名不一致，先转存为匹配扩展名的标准 JPEG/PNG，再重新分析")
     elif img == "ai":
         reqs.append("图片素材：可使用 AI 生图（image_gen.py，需 .env 已配置 IMAGE_BACKEND；不可用则退回图库搜索）")
     if _truthy(params.get("native_charts")):
@@ -138,6 +140,10 @@ def build_prompt(biz_id: str, params: dict, source_rel_paths: list[str],
     if extra:
         lines.append("附加要求（优先级最高，须遵守）：")
         lines.append(extra)
+
+    lines.append("资源登记约束：凡 SVG 页面通过 <image href> 实际引用的项目图片或图标，都必须有已放置的 "
+                 "Design Spec §VIII 资源行并同步进入 spec_lock.md images；icons.inventory 只是候选索引，"
+                 "不能替代逐个已用资源登记。请在最终质量检查前一次性核对。")
 
     # ---- 5. 交付契约 ----
     lines.append("交付要求：")

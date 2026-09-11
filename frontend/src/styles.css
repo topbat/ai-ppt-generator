@@ -8,6 +8,20 @@ body {
 }
 
 /* 卡片悬浮效果 */
+/* 指标页支持窄屏；其他既有桌面页面保留原宽度约定。 */
+body:has(.metrics-layout) { min-width: 320px; }
+.metrics-layout, .metrics-layout .ant-layout-content,
+.llm-metrics > .ant-space-item { min-width: 0; max-width: 100%; }
+@media (max-width: 640px) {
+  .metrics-layout .ant-layout-header {
+    height: auto; line-height: 44px; flex-wrap: wrap; padding: 8px 12px !important;
+  }
+  .metrics-layout .ant-layout-header h4 { font-size: 17px; margin-right: 16px !important; }
+  .metrics-layout .ant-layout-header .ant-menu { order: 3; flex: 0 0 100% !important; min-width: 0; }
+  .metrics-layout .ant-layout-content { padding: 12px !important; }
+  .llm-metrics .ant-card-body { padding: 16px; }
+}
+
 .hover-card {
   transition: box-shadow 0.2s;
 }

@@ -36,6 +36,7 @@
 | 在线预览 | LibreOffice 把 PPTX 转为 PDF/PNG，支持逐页预览、PPTX/PDF/质检报告下载 |
 | PPT 美化 | 独立上传 PPTX，九维视觉评分、锚线/8pt 网格吸附、正文颜色修复，不变差才保存 |
 | 存储 | 默认 MinIO，可通过 S3 兼容配置切换 OSS；下载由 API 代理，适合内网部署 |
+| LLM 观测 | 标准请求与 Agent 运行用量、Token/费用/耗时、任务追踪、Langfuse 接入；[启用说明](docs/07-LANGFUSE.md) |
 
 ## 两种生成入口怎么选
 
